@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flappy Asker</title>
     <style>
+        /* Kita tambahin font eksternal dari Google Fonts biar kayak game 8-bit */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
         body {
             margin: 0; padding: 0; background-color: #000;
             overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -24,8 +27,8 @@
         }
 
         .loading-title {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 40px; font-weight: 900;
+            font-family: 'Press Start 2P', monospace; /* Pake font retro */
+            font-size: 24px; font-weight: 900;
             color: white;
             text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
             margin-bottom: 30px; letter-spacing: 2px; text-align: center;
@@ -84,7 +87,7 @@
 
         // --- SISTEM LOADING ---
         let imagesLoaded = 0;
-        const totalImages = 7 + 10; // 7 gambar utama + 10 gambar angka
+        const totalImages = 7 + 10; 
 
         function checkLoading() {
             imagesLoaded++;
@@ -92,18 +95,20 @@
             loadingBar.style.width = progress + "%";
 
             if (imagesLoaded === totalImages) {
-                setTimeout(() => {
-                    loadingScreen.style.opacity = "0";
+                // Biar font dari Google Font bener-bener keload dulu
+                document.fonts.ready.then(function () {
                     setTimeout(() => {
-                        loadingScreen.style.display = "none";
-                        canvas.style.display = "block";
-                        loop(); 
-                    }, 500);
-                }, 500); 
+                        loadingScreen.style.opacity = "0";
+                        setTimeout(() => {
+                            loadingScreen.style.display = "none";
+                            canvas.style.display = "block";
+                            loop(); 
+                        }, 500);
+                    }, 500); 
+                });
             }
         }
 
-        // Set onload untuk semua gambar
         birdImg.onload = checkLoading; pipeTopImg.onload = checkLoading; pipeBottomImg.onload = checkLoading;
         bgImg.onload = checkLoading; baseImg.onload = checkLoading; gameOverImg.onload = checkLoading; messageImg.onload = checkLoading;
         numImgs.forEach(img => { img.onload = checkLoading; img.onerror = checkLoading; });
@@ -148,12 +153,10 @@
                 this.velocity += this.gravity;
                 this.y += this.velocity;
                 
-                // Nabrak tanah
                 if (this.y + this.height >= canvas.height - baseHeight) {
                     this.y = canvas.height - baseHeight - this.height;
                     setGameOver();
                 }
-                // Mentok atap
                 if(this.y <= 0) {
                      this.y = 0;
                      this.velocity = 0;
@@ -180,14 +183,12 @@
                 
                 if(currentState === STATE_PLAYING) p.x -= gameSpeed; 
 
-                // Cek Tabrakan
                 if (currentState === STATE_PLAYING && 
                     bird.x < p.x + pipeWidth && bird.x + bird.width > p.x && 
                     (bird.y < p.top || bird.y + bird.height > p.top + gap)) {
                     setGameOver();
                 }
 
-                // Tambah skor
                 if (currentState === STATE_PLAYING && p.x + (pipeWidth/2) === bird.x + (bird.width/2) || 
                    (p.x + pipeWidth/2 < bird.x + bird.width/2 && p.x + pipeWidth/2 + gameSpeed >= bird.x + bird.width/2) ) {
                     score++;
@@ -226,7 +227,7 @@
         // --- KONTROL ---
         function handleInput() {
             if (currentState === STATE_MENU) {
-                resetGame(); // Sekarang tap dimana aja di menu langsung main
+                resetGame(); 
             } else if (currentState === STATE_PLAYING) {
                 bird.flap();
             } else if (currentState === STATE_GAMEOVER) {
@@ -264,26 +265,23 @@
             }
         }
 
-        // Fungsi khusus merender gambar angka jadi skor
         function drawScoreImages(num, x, y, scale = 1, align = "center") {
             let numStr = num.toString();
             let totalWidth = 0;
-            let spacing = 2 * scale; // Jarak antar angka
+            let spacing = 2 * scale; 
 
-            // Hitung total lebar semua angka biar bisa di-center atau right-align
             for(let i=0; i<numStr.length; i++) {
                 let n = parseInt(numStr[i]);
                 if(numImgs[n]) {
                     totalWidth += (numImgs[n].width * scale) + spacing;
                 }
             }
-            totalWidth -= spacing; // Hilangin spasi ekstra di akhir
+            totalWidth -= spacing; 
 
             let currentX = x;
             if (align === "center") currentX = x - (totalWidth / 2);
             else if (align === "right") currentX = x - totalWidth;
 
-            // Gambar tiap angkanya
             for(let i=0; i<numStr.length; i++) {
                 let n = parseInt(numStr[i]);
                 if(numImgs[n]) {
@@ -296,15 +294,14 @@
         }
 
         function drawStartMenu() {
-            // Gambar tutorial message
-            let msgW = messageImg.width * 1.2; // Dibesarin dikit
+            let msgW = messageImg.width * 1.2; 
             let msgH = messageImg.height * 1.2;
             ctx.drawImage(messageImg, canvas.width/2 - msgW/2, canvas.height/2 - msgH/2, msgW, msgH);
         }
 
         function drawGameOver() {
             let goWidth = 192; let goHeight = 42;
-            ctx.drawImage(gameOverImg, canvas.width/2 - goWidth/2, canvas.height/2 - 120, goWidth, goHeight);
+            ctx.drawImage(gameOverImg, canvas.width/2 - goWidth/2, canvas.height/2 - 140, goWidth, goHeight);
 
             // Papan Skor
             ctx.fillStyle = "#ded895";
@@ -313,20 +310,24 @@
             
             let boardW = 200, boardH = 100; 
             let boardX = canvas.width/2 - boardW/2;
-            let boardY = canvas.height/2 - 40;
+            let boardY = canvas.height/2 - 70; // Naikin dikit kotaknya
             
             ctx.fillRect(boardX, boardY, boardW, boardH);
             ctx.strokeRect(boardX, boardY, boardW, boardH);
 
+            // Teks SCORE dan BEST (Font diubah ke retro)
             ctx.fillStyle = "#e67e22"; 
-            ctx.font = "bold 16px 'Courier New'";
+            ctx.font = "12px 'Press Start 2P', monospace"; // Pake font 8-bit
             ctx.textAlign = "right";
-            ctx.fillText("SCORE", boardX + boardW - 20, boardY + 30);
-            ctx.fillText("BEST", boardX + boardW - 20, boardY + 75);
+            
+            // Atur posisi tulisan SCORE dan BEST
+            ctx.fillText("SCORE", boardX + boardW - 25, boardY + 30);
+            ctx.fillText("BEST", boardX + boardW - 25, boardY + 75);
 
-            // Gambar skor pake aset angka (scale dikecilin dikit biar muat di kotak)
-            drawScoreImages(score, boardX + boardW - 20, boardY + 35, 0.8, "right");
-            drawScoreImages(bestScore, boardX + boardW - 20, boardY + 80, 0.8, "right");
+            // Gambar skor pake aset angka (Posisi X digeser lebih ke kiri -35 biar gak mepet tembok)
+            // Posisi Y disesuaikan biar pas di bawah tulisan SCORE dan BEST
+            drawScoreImages(score, boardX + boardW - 35, boardY + 35, 0.7, "right");
+            drawScoreImages(bestScore, boardX + boardW - 35, boardY + 80, 0.7, "right");
         }
 
         // --- GAME LOOP ---
@@ -347,7 +348,6 @@
             else if (currentState === STATE_PLAYING) {
                 bird.update(); 
                 bird.draw(); 
-                // Gambar skor gede di tengah atas pake gambar
                 drawScoreImages(score, canvas.width/2, 60, 1.2, "center");
             } 
             else if (currentState === STATE_GAMEOVER) {
@@ -366,3 +366,4 @@
     </script>
 </body>
 </html>
+
