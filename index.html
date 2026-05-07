@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flappy Asker</title>
     <style>
-        /* Kita tambahin font eksternal dari Google Fonts biar kayak game 8-bit */
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
         body {
@@ -16,7 +15,6 @@
             height: 100vh;
         }
 
-        /* --- Loading Screen --- */
         #loading-screen {
             position: fixed; top: 0; left: 0;
             width: 100vw; height: 100vh;
@@ -27,7 +25,7 @@
         }
 
         .loading-title {
-            font-family: 'Press Start 2P', monospace; /* Pake font retro */
+            font-family: 'Press Start 2P', monospace;
             font-size: 24px; font-weight: 900;
             color: white;
             text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
@@ -95,7 +93,6 @@
             loadingBar.style.width = progress + "%";
 
             if (imagesLoaded === totalImages) {
-                // Biar font dari Google Font bener-bener keload dulu
                 document.fonts.ready.then(function () {
                     setTimeout(() => {
                         loadingScreen.style.opacity = "0";
@@ -310,24 +307,24 @@
             
             let boardW = 200, boardH = 100; 
             let boardX = canvas.width/2 - boardW/2;
-            let boardY = canvas.height/2 - 70; // Naikin dikit kotaknya
+            let boardY = canvas.height/2 - 70; 
             
             ctx.fillRect(boardX, boardY, boardW, boardH);
             ctx.strokeRect(boardX, boardY, boardW, boardH);
 
-            // Teks SCORE dan BEST (Font diubah ke retro)
+            // Teks SCORE dan BEST (Font diubah ke retro, posisi di tengah kanan)
             ctx.fillStyle = "#e67e22"; 
-            ctx.font = "12px 'Press Start 2P', monospace"; // Pake font 8-bit
-            ctx.textAlign = "right";
+            ctx.font = "12px 'Press Start 2P', monospace"; 
+            ctx.textAlign = "center"; 
             
-            // Atur posisi tulisan SCORE dan BEST
-            ctx.fillText("SCORE", boardX + boardW - 25, boardY + 30);
-            ctx.fillText("BEST", boardX + boardW - 25, boardY + 75);
+            let rightSideCenter = boardX + (boardW * 0.75); 
 
-            // Gambar skor pake aset angka (Posisi X digeser lebih ke kiri -35 biar gak mepet tembok)
-            // Posisi Y disesuaikan biar pas di bawah tulisan SCORE dan BEST
-            drawScoreImages(score, boardX + boardW - 35, boardY + 35, 0.7, "right");
-            drawScoreImages(bestScore, boardX + boardW - 35, boardY + 80, 0.7, "right");
+            ctx.fillText("SCORE", rightSideCenter, boardY + 25);
+            ctx.fillText("BEST", rightSideCenter, boardY + 70);
+
+            // Gambar skor pake aset angka 
+            drawScoreImages(score, rightSideCenter, boardY + 35, 0.7, "center");
+            drawScoreImages(bestScore, rightSideCenter, boardY + 80, 0.7, "center");
         }
 
         // --- GAME LOOP ---
@@ -366,3 +363,4 @@
     </script>
 </body>
 </html>
+
