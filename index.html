@@ -15,7 +15,6 @@
             height: 100vh;
         }
 
-        /* --- Loading Screen Update --- */
         #loading-screen {
             position: fixed; top: 0; left: 0;
             width: 100vw; height: 100vh;
@@ -25,10 +24,8 @@
             z-index: 9999; transition: opacity 0.5s ease;
         }
 
-        /* Container buat naruh gambar logo di loading */
         #loading-logo-container {
             margin-bottom: 30px;
-            /* Ukurannya ngikutin ukuran asli logo (89x24) dikali SCALE (2.5) */
             width: 222.5px; 
             height: 60px;
         }
@@ -48,7 +45,8 @@
 
     <div id="loading-screen">
         <canvas id="loadingLogoCanvas" width="222" height="60"></canvas>
-        <div style="height: 30px;"></div> <div class="loading-bar-bg">
+        <div style="height: 30px;"></div> 
+        <div class="loading-bar-bg">
             <div class="loading-bar-fill" id="loading-bar"></div>
         </div>
     </div>
@@ -93,7 +91,6 @@
         const S_TEXT_GAME  = { sx: 395, sy: 59, w: 49, h: 21 };
         const S_TEXT_OVER  = { sx: 449, sy: 59, w: 42, h: 21 };
         
-        // Logo Flappy Bird yang lu kasih
         const S_LOGO_FLAPPY = { sx: 351, sy: 91, w: 89, h: 24 };
 
         const S_NUMBERS = [
@@ -116,7 +113,6 @@
 
         let progress = 0;
         
-        // Kalau gambar udah load, gambar logonya di layar loading
         spriteSheet.onload = () => {
             logoCtx.imageSmoothingEnabled = false;
             logoCtx.drawImage(
@@ -275,7 +271,6 @@
 
         function drawUI() {
             if (state === STATE_GETREADY) {
-                // Gambar Logo Flappy Bird pas menu awal juga
                 let logoW = S_LOGO_FLAPPY.w * SCALE;
                 let logoH = S_LOGO_FLAPPY.h * SCALE;
                 drawSprite(S_LOGO_FLAPPY, canvas.width/2 - logoW/2, canvas.height/2 - 150);
@@ -304,15 +299,9 @@
                 let boardY = canvas.height/2 - 50;
                 drawSprite(S_SCOREBOARD, boardX, boardY);
 
-                ctx.fillStyle = "#e67e22"; 
-                ctx.font = "12px 'Press Start 2P', monospace"; 
-                ctx.textAlign = "right"; 
-                
-                ctx.fillText("SCORE", boardX + boardW - 25, boardY + 28);
-                ctx.fillText("BEST", boardX + boardW - 25, boardY + 70);
-
-                drawScoreImages(score, boardX + boardW - 25, boardY + 35, 0.6, "right");
-                drawScoreImages(bestScore, boardX + boardW - 25, boardY + 77, 0.6, "right");
+                // Angka skor, posisi diturunkan sedikit biar pas dengan teks bawaan gambar
+                drawScoreImages(score, boardX + boardW - 25, boardY + 40, 0.6, "right");
+                drawScoreImages(bestScore, boardX + boardW - 25, boardY + 82, 0.6, "right");
 
                 let medalSprite = null;
                 if (score >= 40) medalSprite = S_MEDALS.PLATINUM;
@@ -321,10 +310,9 @@
                 else if (score >= 10) medalSprite = S_MEDALS.BRONZE;
 
                 if (medalSprite) {
-                    let medalW = medalSprite.w * SCALE;
-                    let medalH = medalSprite.h * SCALE;
-                    let medalX = boardX + (boardW * 0.23) - (medalW / 2);
-                    let medalY = boardY + (boardH * 0.5) - (medalH / 2);
+                    // Posisi medali di kotak abu-abu
+                    let medalX = boardX + (boardW * 0.115); 
+                    let medalY = boardY + (boardH * 0.38); 
                     drawSprite(medalSprite, medalX, medalY);
                 }
 
@@ -409,3 +397,4 @@
     </script>
 </body>
 </html>
+
