@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy Asker</title>
+    <title>Flappy Asker Pro</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
         body {
             margin: 0; padding: 0; background-color: #000;
             overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -13,6 +15,7 @@
             height: 100vh;
         }
 
+        /* --- Loading Screen Update --- */
         #loading-screen {
             position: fixed; top: 0; left: 0;
             width: 100vw; height: 100vh;
@@ -22,11 +25,12 @@
             z-index: 9999; transition: opacity 0.5s ease;
         }
 
-        .loading-title {
-            font-family: monospace;
-            font-size: 24px; font-weight: 900;
-            color: white;
-            margin-bottom: 30px; letter-spacing: 2px; text-align: center;
+        /* Container buat naruh gambar logo di loading */
+        #loading-logo-container {
+            margin-bottom: 30px;
+            /* Ukurannya ngikutin ukuran asli logo (89x24) dikali SCALE (2.5) */
+            width: 222.5px; 
+            height: 60px;
         }
 
         .loading-bar-bg { width: 200px; height: 10px; background-color: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; border: 2px solid white;}
@@ -36,19 +40,15 @@
             display: none; 
             background-color: #000;
             max-width: 500px;
-            /* Pastikan CSS ini ada untuk membantu ketajaman di beberapa browser */
-            image-rendering: -moz-crisp-edges;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
-            image-rendering: pixelated;
+            image-rendering: pixelated; 
         }
     </style>
 </head>
 <body>
 
     <div id="loading-screen">
-        <div class="loading-title">MEMUAT...</div>
-        <div class="loading-bar-bg">
+        <canvas id="loadingLogoCanvas" width="222" height="60"></canvas>
+        <div style="height: 30px;"></div> <div class="loading-bar-bg">
             <div class="loading-bar-fill" id="loading-bar"></div>
         </div>
     </div>
@@ -58,43 +58,25 @@
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
+        
         const loadingScreen = document.getElementById("loading-screen");
         const loadingBar = document.getElementById("loading-bar");
+        const logoCanvas = document.getElementById("loadingLogoCanvas");
+        const logoCtx = logoCanvas.getContext("2d");
 
         function resizeCanvas() {
             canvas.width = Math.min(window.innerWidth, 500);
             canvas.height = window.innerHeight;
-            
-            // PENTING: Disable smoothing setiap kali canvas di-resize
-            // Ini yang bikin gambar pixel art tetap tajam!
-            ctx.imageSmoothingEnabled = false;
+            ctx.imageSmoothingEnabled = false; 
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
         const SCALE = 2.5; 
 
-        const spriteSheet = new Image();
-        spriteSheet.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/main/assets/sprites.png"; 
-
-        let progress = 0;
-        const loadingInterval = setInterval(() => {
-            progress += 10;
-            loadingBar.style.width = progress + "%";
-            if (progress >= 100 && spriteSheet.complete) {
-                clearInterval(loadingInterval);
-                setTimeout(() => {
-                    loadingScreen.style.opacity = "0";
-                    setTimeout(() => {
-                        loadingScreen.style.display = "none";
-                        canvas.style.display = "block";
-                        initGame(); 
-                    }, 500);
-                }, 400);
-            }
-        }, 100);
-
-        // Koordinat Sprite
+        // ==========================================
+        // DATA KOORDINAT SPRITE
+        // ==========================================
         const S_BG_DAY = { sx: 0, sy: 0, w: 144, h: 256 };
         const S_BASE   = { sx: 292, sy: 0, w: 168, h: 56 }; 
         const S_BIRD = [
@@ -110,6 +92,9 @@
         const S_TEXT_READY = { sx: 329, sy: 59, w: 58, h: 25 };
         const S_TEXT_GAME  = { sx: 395, sy: 59, w: 49, h: 21 };
         const S_TEXT_OVER  = { sx: 449, sy: 59, w: 42, h: 21 };
+        
+        // Logo Flappy Bird yang lu kasih
+        const S_LOGO_FLAPPY = { sx: 351, sy: 91, w: 89, h: 24 };
 
         const S_NUMBERS = [
             {sx: 496, sy: 60, w: 12, h: 18}, {sx: 136, sy: 455, w: 8, h: 18}, {sx: 292, sy: 160, w: 12, h: 18},
@@ -117,11 +102,54 @@
             {sx: 292, sy: 184, w: 12, h: 18}, {sx: 306, sy: 184, w: 12, h: 18}, {sx: 320, sy: 184, w: 12, h: 18},
             {sx: 334, sy: 184, w: 12, h: 18}
         ];
+
+        const S_MEDALS = {
+            BRONZE:   { sx: 112, sy: 477, w: 22, h: 22 },
+            SILVER:   { sx: 112, sy: 453, w: 22, h: 22 },
+            GOLD:     { sx: 121, sy: 282, w: 22, h: 22 },
+            PLATINUM: { sx: 121, sy: 258, w: 22, h: 22 }
+        };
+
+        // --- LOAD SPRITE & LOADING LOGIC ---
+        const spriteSheet = new Image();
+        spriteSheet.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/main/assets/sprites.png"; 
+
+        let progress = 0;
         
+        // Kalau gambar udah load, gambar logonya di layar loading
+        spriteSheet.onload = () => {
+            logoCtx.imageSmoothingEnabled = false;
+            logoCtx.drawImage(
+                spriteSheet, 
+                S_LOGO_FLAPPY.sx, S_LOGO_FLAPPY.sy, S_LOGO_FLAPPY.w, S_LOGO_FLAPPY.h, 
+                0, 0, S_LOGO_FLAPPY.w * SCALE, S_LOGO_FLAPPY.h * SCALE
+            );
+        };
+
+        const loadingInterval = setInterval(() => {
+            progress += 10;
+            loadingBar.style.width = progress + "%";
+            
+            if (progress >= 100 && spriteSheet.complete) {
+                clearInterval(loadingInterval);
+                setTimeout(() => {
+                    loadingScreen.style.opacity = "0";
+                    setTimeout(() => {
+                        loadingScreen.style.display = "none";
+                        canvas.style.display = "block";
+                        ctx.imageSmoothingEnabled = false;
+                        initGame(); 
+                    }, 500);
+                }, 400);
+            }
+        }, 100);
+
+        // --- FUNGSI MENGGAMBAR SPRITE ---
         function drawSprite(sprite, dx, dy, dw = sprite.w * SCALE, dh = sprite.h * SCALE) {
             ctx.drawImage(spriteSheet, sprite.sx, sprite.sy, sprite.w, sprite.h, Math.floor(dx), Math.floor(dy), dw, dh);
         }
 
+        // --- VARIABEL & STATE GAME ---
         const STATE_GETREADY = 0;
         const STATE_PLAYING = 1;
         const STATE_GAMEOVER = 2;
@@ -135,24 +163,17 @@
         const pipeW = S_PIPE_TOP.w * SCALE;
         let gap = 120; 
         let gameSpeed = 3; 
-
-        // --- SIMPAN POSISI TOMBOL PLAY ---
-        // Kita simpan posisi x, y, width, height dari tombol "Play" 
-        // supaya bisa dicek pas ada klik
         let playBtnRect = { x: 0, y: 0, w: 0, h: 0 };
 
+        // --- OBJEK ---
         const bg = {
             draw: function() {
                 let bgH = S_BG_DAY.h * SCALE;
                 let bgW = S_BG_DAY.w * SCALE;
                 let bgY = canvas.height - baseHeight - bgH; 
-
                 for(let i = 0; i <= Math.ceil(canvas.width / bgW); i++) {
                     drawSprite(S_BG_DAY, i * bgW, bgY, bgW, bgH);
-                    if(bgY > 0) {
-                        ctx.fillStyle = "#4ec0ca"; 
-                        ctx.fillRect(i * bgW, 0, bgW, bgY);
-                    }
+                    if(bgY > 0) { ctx.fillStyle = "#4ec0ca"; ctx.fillRect(i * bgW, 0, bgW, bgY); }
                 }
             }
         };
@@ -160,9 +181,7 @@
         const ground = {
             x: 0,
             draw: function() {
-                if(state === STATE_PLAYING) {
-                    this.x = (this.x - gameSpeed) % ((S_BASE.w * SCALE) / 2); 
-                }
+                if(state === STATE_PLAYING) { this.x = (this.x - gameSpeed) % ((S_BASE.w * SCALE) / 2); }
                 for(let i = 0; i <= Math.ceil(canvas.width / (S_BASE.w * SCALE)) + 1; i++) {
                      drawSprite(S_BASE, this.x + (i * (S_BASE.w * SCALE)), canvas.height - baseHeight);
                 }
@@ -172,37 +191,29 @@
         const bird = {
             x: 50, y: 150, w: S_BIRD[0].w * SCALE, h: S_BIRD[0].h * SCALE,
             gravity: 0.4, velocity: 0, jump: -6, rotation: 0, frame: 0,
-            
             draw: function() {
                 let currentSprite = S_BIRD[0];
                 if(state === STATE_PLAYING || state === STATE_GETREADY) {
                     this.frame += 0.15;
-                    let frameIdx = Math.floor(this.frame) % 3;
-                    currentSprite = S_BIRD[frameIdx];
+                    currentSprite = S_BIRD[Math.floor(this.frame) % 3];
                 }
-
                 ctx.save();
                 ctx.translate(this.x + this.w/2, this.y + this.h/2);
-                
                 if(state === STATE_PLAYING || state === STATE_GAMEOVER){
                     this.rotation = Math.min(Math.PI / 2, Math.max(-Math.PI / 6, (this.velocity * 0.1)));
                     ctx.rotate(this.rotation);
                 }
-                
                 drawSprite(currentSprite, -this.w/2, -this.h/2);
                 ctx.restore();
             },
             update: function() {
                 this.velocity += this.gravity;
                 this.y += this.velocity;
-                
                 if (this.y + this.h >= canvas.height - baseHeight) {
                     this.y = canvas.height - baseHeight - this.h;
                     setGameOver();
                 }
-                if(this.y <= 0) {
-                     this.y = 0; this.velocity = 0;
-                }
+                if(this.y <= 0) { this.y = 0; this.velocity = 0; }
             },
             flap: function() { this.velocity = this.jump; }
         };
@@ -215,7 +226,6 @@
                 let pH = S_PIPE_TOP.h * SCALE;
                 drawSprite(S_PIPE_TOP, p.x, p.top - pH);
                 drawSprite(S_PIPE_BOT, p.x, p.top + gap);
-                
                 if(state === STATE_PLAYING) p.x -= gameSpeed; 
 
                 if (state === STATE_PLAYING && 
@@ -223,7 +233,6 @@
                     (bird.y < p.top || bird.y + bird.h > p.top + gap)) {
                     setGameOver();
                 }
-
                 if (state === STATE_PLAYING && p.x + (pipeW/2) === bird.x + (bird.w/2) || 
                    (p.x + pipeW/2 < bird.x + bird.w/2 && p.x + pipeW/2 + gameSpeed >= bird.x + bird.w/2) ) {
                     score++;
@@ -234,21 +243,20 @@
 
         function addPipe() {
             if (state === STATE_PLAYING && frames % 100 === 0) {
-                let minTop = 50; 
-                let maxTop = canvas.height - baseHeight - gap - 50; 
+                let minTop = 50; let maxTop = canvas.height - baseHeight - gap - 50; 
                 let topHeight = Math.random() * (maxTop - minTop) + minTop;
                 pipes.push({ x: canvas.width, top: topHeight });
             }
         }
 
-        function drawScoreImages(num, x, y, scale = 1, align = "center") {
+        function drawScoreImages(num, x, y, numScale = 1, align = "center") {
             let numStr = num.toString();
             let totalWidth = 0;
             let spacing = 2; 
 
             for(let i=0; i<numStr.length; i++) {
                 let n = parseInt(numStr[i]);
-                totalWidth += (S_NUMBERS[n].w * scale * SCALE) + spacing;
+                totalWidth += (S_NUMBERS[n].w * numScale * SCALE) + spacing;
             }
             totalWidth -= spacing; 
 
@@ -258,8 +266,8 @@
 
             for(let i=0; i<numStr.length; i++) {
                 let n = parseInt(numStr[i]);
-                let w = S_NUMBERS[n].w * scale * SCALE;
-                let h = S_NUMBERS[n].h * scale * SCALE;
+                let w = S_NUMBERS[n].w * numScale * SCALE;
+                let h = S_NUMBERS[n].h * numScale * SCALE;
                 drawSprite(S_NUMBERS[n], currentX, y, w, h);
                 currentX += w + spacing;
             }
@@ -267,49 +275,61 @@
 
         function drawUI() {
             if (state === STATE_GETREADY) {
+                // Gambar Logo Flappy Bird pas menu awal juga
+                let logoW = S_LOGO_FLAPPY.w * SCALE;
+                let logoH = S_LOGO_FLAPPY.h * SCALE;
+                drawSprite(S_LOGO_FLAPPY, canvas.width/2 - logoW/2, canvas.height/2 - 150);
+
                 let totalW = (S_TEXT_GET.w + S_TEXT_READY.w + 5) * SCALE;
-                let getX = canvas.width/2 - totalW/2;
-                let readyX = getX + (S_TEXT_GET.w * SCALE) + 10;
-                let textY = canvas.height/2 - 100;
+                let textY = canvas.height/2 - 80;
+                drawSprite(S_TEXT_GET, canvas.width/2 - totalW/2, textY);
+                drawSprite(S_TEXT_READY, canvas.width/2 - totalW/2 + (S_TEXT_GET.w * SCALE) + 10, textY);
                 
-                drawSprite(S_TEXT_GET, getX, textY);
-                drawSprite(S_TEXT_READY, readyX, textY);
-
-                // Hitung posisi tombol Play dan simpan
-                playBtnRect.w = S_PLAY_BTN.w * SCALE;
-                playBtnRect.h = S_PLAY_BTN.h * SCALE;
-                playBtnRect.x = canvas.width/2 - playBtnRect.w/2;
-                playBtnRect.y = canvas.height/2;
-
+                playBtnRect.w = S_PLAY_BTN.w * SCALE; playBtnRect.h = S_PLAY_BTN.h * SCALE;
+                playBtnRect.x = canvas.width/2 - playBtnRect.w/2; playBtnRect.y = canvas.height/2;
                 drawSprite(S_PLAY_BTN, playBtnRect.x, playBtnRect.y);
 
             } else if (state === STATE_PLAYING) {
-                drawScoreImages(score, canvas.width/2, 50, 1.5, "center");
+                drawScoreImages(score, canvas.width/2, 50, 1.2, "center"); 
+
             } else if (state === STATE_GAMEOVER) {
                 let totalW = (S_TEXT_GAME.w + S_TEXT_OVER.w + 5) * SCALE;
-                let gameX = canvas.width/2 - totalW/2;
-                let overX = gameX + (S_TEXT_GAME.w * SCALE) + 10;
                 let textY = canvas.height/2 - 150;
-                
-                drawSprite(S_TEXT_GAME, gameX, textY);
-                drawSprite(S_TEXT_OVER, overX, textY);
+                drawSprite(S_TEXT_GAME, canvas.width/2 - totalW/2, textY);
+                drawSprite(S_TEXT_OVER, canvas.width/2 - totalW/2 + (S_TEXT_GAME.w * SCALE) + 10, textY);
 
                 let boardW = S_SCOREBOARD.w * SCALE;
                 let boardH = S_SCOREBOARD.h * SCALE;
                 let boardX = canvas.width/2 - boardW/2;
                 let boardY = canvas.height/2 - 50;
-
                 drawSprite(S_SCOREBOARD, boardX, boardY);
 
-                drawScoreImages(score, boardX + boardW - 20, boardY + 35, 0.8, "right");
-                drawScoreImages(bestScore, boardX + boardW - 20, boardY + 95, 0.8, "right");
+                ctx.fillStyle = "#e67e22"; 
+                ctx.font = "12px 'Press Start 2P', monospace"; 
+                ctx.textAlign = "right"; 
+                
+                ctx.fillText("SCORE", boardX + boardW - 25, boardY + 28);
+                ctx.fillText("BEST", boardX + boardW - 25, boardY + 70);
 
-                // Hitung posisi tombol Play di layar Game Over dan simpan
-                playBtnRect.w = S_PLAY_BTN.w * SCALE;
-                playBtnRect.h = S_PLAY_BTN.h * SCALE;
+                drawScoreImages(score, boardX + boardW - 25, boardY + 35, 0.6, "right");
+                drawScoreImages(bestScore, boardX + boardW - 25, boardY + 77, 0.6, "right");
+
+                let medalSprite = null;
+                if (score >= 40) medalSprite = S_MEDALS.PLATINUM;
+                else if (score >= 30) medalSprite = S_MEDALS.GOLD;
+                else if (score >= 20) medalSprite = S_MEDALS.SILVER;
+                else if (score >= 10) medalSprite = S_MEDALS.BRONZE;
+
+                if (medalSprite) {
+                    let medalW = medalSprite.w * SCALE;
+                    let medalH = medalSprite.h * SCALE;
+                    let medalX = boardX + (boardW * 0.23) - (medalW / 2);
+                    let medalY = boardY + (boardH * 0.5) - (medalH / 2);
+                    drawSprite(medalSprite, medalX, medalY);
+                }
+
                 playBtnRect.x = canvas.width/2 - playBtnRect.w/2;
                 playBtnRect.y = boardY + boardH + 20;
-
                 drawSprite(S_PLAY_BTN, playBtnRect.x, playBtnRect.y);
             }
         }
@@ -331,11 +351,8 @@
             bird.flap(); 
         }
 
-        // --- KONTROL KLIK/TAP DENGAN DETEKSI TOMBOL ---
         function handleInput(e) {
             let rect = canvas.getBoundingClientRect();
-            
-            // Ambil posisi klik (support mouse atau touch)
             let clickX, clickY;
             if (e.type === 'touchstart') {
                 clickX = e.touches[0].clientX - rect.left;
@@ -346,78 +363,49 @@
             }
 
             if(state === STATE_GETREADY) {
-                // Cek apakah klik ada di area tombol Play
                 if (clickX >= playBtnRect.x && clickX <= playBtnRect.x + playBtnRect.w &&
                     clickY >= playBtnRect.y && clickY <= playBtnRect.y + playBtnRect.h) {
                     resetGame();
                 }
             } else if (state === STATE_PLAYING) {
-                // Kalo lagi main, tap di mana aja burungnya loncat
                 bird.flap();
             } else if (state === STATE_GAMEOVER) {
-                // Cek apakah klik ada di area tombol Play di Game Over
                 if (clickX >= playBtnRect.x && clickX <= playBtnRect.x + playBtnRect.w &&
                     clickY >= playBtnRect.y && clickY <= playBtnRect.y + playBtnRect.h) {
-                    // Beri sedikit delay sebelum restart biar nggak kerasa aneh
                     setTimeout(() => { state = STATE_GETREADY; }, 100);
                 }
             }
         }
 
         canvas.addEventListener("mousedown", handleInput);
-        canvas.addEventListener("touchstart", (e) => { 
-            e.preventDefault(); // Mencegah scrolling atau zoom default browser
-            handleInput(e); 
-        }, {passive: false});
-
-        // Spasi buat lompat tetep bisa dipake
+        canvas.addEventListener("touchstart", (e) => { e.preventDefault(); handleInput(e); }, {passive: false});
         document.addEventListener("keydown", (e) => { 
             if (e.code === "Space") {
-                if (state === STATE_GETREADY || state === STATE_GAMEOVER) {
-                    resetGame();
-                } else if (state === STATE_PLAYING) {
-                    bird.flap();
-                }
+                if (state === STATE_PLAYING) bird.flap();
+                else if (state === STATE_GETREADY || state === STATE_GAMEOVER) resetGame();
             } 
         });
 
         function loop() {
-            ctx.fillStyle = "#4ec0ca"; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
+            ctx.fillStyle = "#4ec0ca"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             bg.draw();
-
             if (state === STATE_PLAYING) addPipe(); 
             drawPipes();
             ground.draw();
-
-            if(state === STATE_GETREADY) {
-                bird.y = 150 + Math.sin(frames * 0.1) * 5;
-                bird.draw();
-            } 
-            else if (state === STATE_PLAYING) {
-                bird.update(); 
-                bird.draw(); 
-            } 
+            if(state === STATE_GETREADY) { bird.y = 150 + Math.sin(frames * 0.1) * 5; bird.draw(); } 
+            else if (state === STATE_PLAYING) { bird.update(); bird.draw(); } 
             else if (state === STATE_GAMEOVER) {
                 if(bird.y + bird.h < canvas.height - baseHeight) {
-                    bird.velocity += bird.gravity;
-                    bird.y += bird.velocity;
-                    bird.rotation = Math.PI / 2; 
+                    bird.velocity += bird.gravity; bird.y += bird.velocity; bird.rotation = Math.PI / 2; 
                 }
                 bird.draw();
             }
-
             drawUI();
-
             frames++;
             requestAnimationFrame(loop);
         }
 
-        function initGame() { 
-            ctx.imageSmoothingEnabled = false; // Set lagi saat mulai game
-            loop(); 
-        }
+        function initGame() { loop(); }
     </script>
 </body>
 </html>
