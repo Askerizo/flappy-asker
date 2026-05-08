@@ -20,7 +20,6 @@
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             z-index: 9999; transition: opacity 0.5s ease;
-            /* Disembunyikan dulu sampai sprite siap */
             display: none; 
         }
 
@@ -309,10 +308,12 @@
                 let boardY = canvas.height/2 - 50;
                 drawSprite(S_SCOREBOARD, boardX, boardY);
 
-                // Skor udah rapi di kanan dan kecil
-                let scoreXAlign = boardX + boardW - 22; 
-                drawScoreImages(score, scoreXAlign, boardY + 38, 0.45, "right");
-                drawScoreImages(bestScore, scoreXAlign, boardY + 80, 0.45, "right");
+                // --- POSISI SKOR DIPERBAIKI ---
+                // X digeser agak ke kiri (dari -22 ke -28)
+                // Y diturunin biar lepas dari tulisan "SCORE" dan "BEST" (dari +42/+84 ke +50/+92)
+                let scoreXAlign = boardX + boardW - 28; 
+                drawScoreImages(score, scoreXAlign, boardY + 50, 0.45, "right");
+                drawScoreImages(bestScore, scoreXAlign, boardY + 92, 0.45, "right");
 
                 let medalSprite = null;
                 if (score >= 40) medalSprite = S_MEDALS.PLATINUM;
@@ -323,9 +324,10 @@
                 if (medalSprite) {
                     let medalW = medalSprite.w * SCALE;
                     let medalH = medalSprite.h * SCALE;
-                    // Medali udah presisi di tengah lingkarannya
-                    let medalX = boardX + (boardW * 0.22) - (medalW / 2); 
-                    let medalY = boardY + (boardH * 0.57) - (medalH / 2); 
+                    // --- POSISI MEDALI DIPERBAIKI ---
+                    // Digeser agak ke kiri (0.20) dan agak ke atas (0.52) biar pas masuk bolongan
+                    let medalX = boardX + (boardW * 0.20) - (medalW / 2); 
+                    let medalY = boardY + (boardH * 0.52) - (medalH / 2); 
                     drawSprite(medalSprite, medalX, medalY);
                 }
 
@@ -410,4 +412,5 @@
     </script>
 </body>
 </html>
+
 
