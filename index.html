@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FlappyBird by Asker</title>
+    <title>Flappy Asker Pro</title>
     <style>
         body {
             margin: 0; padding: 0; background-color: #000;
@@ -20,6 +20,7 @@
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             z-index: 9999; transition: opacity 0.5s ease;
+            /* Disembunyikan dulu sampai sprite siap */
             display: none; 
         }
 
@@ -103,24 +104,12 @@
             PLATINUM: { sx: 121, sy: 258, w: 22, h: 22 }
         };
 
-        // --- DATA TUTORIAL MESSAGE ---
-        const S_TUTORIAL_BIRD  = { sx: 310, sy: 91, w: 19, h: 16 };
-        const S_TUTORIAL_ARROW = { sx: 316, sy: 110, w: 7, h: 7 };
-        const S_TUTORIAL_FINGER= { sx: 316, sy: 127, w: 10, h: 13 };
-        const S_TUTORIAL_TAP_L = { sx: 292, sy: 124, w: 21, h: 9 };
-        const S_TUTORIAL_TAP_R = { sx: 328, sy: 124, w: 21, h: 9 };
-
-
         // --- LOAD SPRITE ---
         const spriteSheet = new Image();
         spriteSheet.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/main/assets/sprites.png"; 
 
         spriteSheet.onload = () => {
             startLoadingAnimation();
-        };
-
-        spriteSheet.onerror = () => {
-             alert("Gagal memuat gambar (sprite sheet). Cek koneksi internet atau link GitHub!");
         };
 
         // --- LOADING LOGIC ---
@@ -301,26 +290,9 @@
                 drawSprite(S_TEXT_GET, canvas.width/2 - totalW/2, textY);
                 drawSprite(S_TEXT_READY, canvas.width/2 - totalW/2 + (S_TEXT_GET.w * SCALE) + 10, textY);
                 
-                // --- GAMBAR TUTORIAL MESSAGE ---
-                // Posisikan semua sprite tutorial secara manual biar rapi di tengah
-                let tutCenterX = canvas.width / 2;
-                let tutCenterY = canvas.height / 2 + 10;
-                
-                // Burung (ngelewatin batas tengah sedikit ke atas)
-                drawSprite(S_TUTORIAL_BIRD, tutCenterX - (S_TUTORIAL_BIRD.w * SCALE)/2, tutCenterY - 40);
-                
-                // Panah ke atas
-                drawSprite(S_TUTORIAL_ARROW, tutCenterX - (S_TUTORIAL_ARROW.w * SCALE)/2, tutCenterY - 5);
-                
-                // Telunjuk
-                drawSprite(S_TUTORIAL_FINGER, tutCenterX - (S_TUTORIAL_FINGER.w * SCALE)/2, tutCenterY + 15);
-                
-                // Tulisan TAP Kiri
-                drawSprite(S_TUTORIAL_TAP_L, tutCenterX - (S_TUTORIAL_TAP_L.w * SCALE) - 15, tutCenterY + 15);
-                
-                // Tulisan TAP Kanan
-                drawSprite(S_TUTORIAL_TAP_R, tutCenterX + 15, tutCenterY + 15);
-
+                playBtnRect.w = S_PLAY_BTN.w * SCALE; playBtnRect.h = S_PLAY_BTN.h * SCALE;
+                playBtnRect.x = canvas.width/2 - playBtnRect.w/2; playBtnRect.y = canvas.height/2;
+                drawSprite(S_PLAY_BTN, playBtnRect.x, playBtnRect.y);
 
             } else if (state === STATE_PLAYING) {
                 drawScoreImages(score, canvas.width/2, 50, 1.2, "center"); 
@@ -337,8 +309,7 @@
                 let boardY = canvas.height/2 - 50;
                 drawSprite(S_SCOREBOARD, boardX, boardY);
 
-                // --- POSISI SKOR DIPERBAIKI ---
-                // X disesuaikan biar bener-bener rata kanan sesuai dengan lebar papan
+                // Skor udah rapi di kanan dan kecil
                 let scoreXAlign = boardX + boardW - 22; 
                 drawScoreImages(score, scoreXAlign, boardY + 38, 0.45, "right");
                 drawScoreImages(bestScore, scoreXAlign, boardY + 80, 0.45, "right");
@@ -352,6 +323,7 @@
                 if (medalSprite) {
                     let medalW = medalSprite.w * SCALE;
                     let medalH = medalSprite.h * SCALE;
+                    // Medali udah presisi di tengah lingkarannya
                     let medalX = boardX + (boardW * 0.22) - (medalW / 2); 
                     let medalY = boardY + (boardH * 0.57) - (medalH / 2); 
                     drawSprite(medalSprite, medalX, medalY);
@@ -392,7 +364,10 @@
             }
 
             if(state === STATE_GETREADY) {
-                resetGame();
+                if (clickX >= playBtnRect.x && clickX <= playBtnRect.x + playBtnRect.w &&
+                    clickY >= playBtnRect.y && clickY <= playBtnRect.y + playBtnRect.h) {
+                    resetGame();
+                }
             } else if (state === STATE_PLAYING) {
                 bird.flap();
             } else if (state === STATE_GAMEOVER) {
@@ -435,3 +410,4 @@
     </script>
 </body>
 </html>
+
