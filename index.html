@@ -3,62 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy Asker</title>
+    <title>Flappy Asker - Sprite Version</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
         body {
             margin: 0; padding: 0; background-color: #000;
-            overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; font-family: sans-serif;
             user-select: none; -webkit-user-select: none;
             display: flex; justify-content: center; align-items: center;
             height: 100vh;
         }
-
-        #loading-screen {
-            position: fixed; top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            background-color: #70c5ce; 
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            z-index: 9999; transition: opacity 0.5s ease;
-        }
-
-        .loading-title {
-            font-family: 'Press Start 2P', monospace;
-            font-size: 24px; font-weight: 900;
-            color: white;
-            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-            margin-bottom: 30px; letter-spacing: 2px; text-align: center;
-        }
-
-        .loading-bar-bg { width: 200px; height: 10px; background-color: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; border: 2px solid white;}
-        .loading-bar-fill { width: 0%; height: 100%; background-color: #f1c40f; transition: width 0.2s ease; }
-
         canvas { 
-            display: none; 
-            background-color: #70c5ce;
-            max-width: 500px;
+            display: block; 
+            max-width: 500px; /* Batas lebar untuk PC */
+            background-color: #000; /* Warna hitam kalau gambar gagal load */
+        }
+        #loading {
+            position: absolute; color: white; font-size: 24px;
         }
     </style>
 </head>
 <body>
 
-    <div id="loading-screen">
-        <div class="loading-title">MEMUAT...</div>
-        <div class="loading-bar-bg">
-            <div class="loading-bar-fill" id="loading-bar"></div>
-        </div>
-    </div>
-
+    <div id="loading">Memuat Gambar...</div>
     <canvas id="gameCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
-        const loadingScreen = document.getElementById("loading-screen");
-        const loadingBar = document.getElementById("loading-bar");
+        const loadingText = document.getElementById("loading");
 
+        // --- RESPONSIVE CANVAS ---
         function resizeCanvas() {
             canvas.width = Math.min(window.innerWidth, 500);
             canvas.height = window.innerHeight;
@@ -66,301 +40,195 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // --- LOAD GAMBAR UTAMA ---
-        const birdImg = new Image(); birdImg.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/76996e699d113d041cdde32888f1aadf78608dbc/assets/bird.png"; 
-        const pipeTopImg = new Image(); pipeTopImg.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/76996e699d113d041cdde32888f1aadf78608dbc/assets/pipe-top.png";
-        const pipeBottomImg = new Image(); pipeBottomImg.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/76996e699d113d041cdde32888f1aadf78608dbc/assets/pipe-bottom.png";
-        const bgImg = new Image(); bgImg.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/76996e699d113d041cdde32888f1aadf78608dbc/assets/bg.png";
-        const baseImg = new Image(); baseImg.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/76996e699d113d041cdde32888f1aadf78608dbc/assets/base.png";
-        const gameOverImg = new Image(); gameOverImg.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/76996e699d113d041cdde32888f1aadf78608dbc/assets/gameover.png";
-        const messageImg = new Image(); messageImg.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/f6153b677741205a40bf8c460b89c942e88d65b1/assets/message.png";
+        // --- LOAD SPRITE SHEET ---
+        const spriteSheet = new Image();
+        // Ganti URL ini kalau link gambar lu beda
+        spriteSheet.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/main/assets/sprites.png"; 
 
-        // --- LOAD GAMBAR ANGKA 0-9 ---
-        const numImgs = [];
-        for(let i=0; i<=9; i++) {
-            let img = new Image();
-            img.src = `https://raw.githubusercontent.com/Askerizo/flappy-asker/f6153b677741205a40bf8c460b89c942e88d65b1/assets/${i}.png`;
-            numImgs.push(img);
+        spriteSheet.onload = () => {
+            loadingText.style.display = "none";
+            initGame();
+        };
+
+        // ==========================================
+        // TUGAS LU: ISI KOORDINAT DI BAWAH INI (px)
+        // Format: { sx: x_di_gambar, sy: y_di_gambar, w: lebar, h: tinggi }
+        // ==========================================
+        
+        // Contoh perkiraan kasar (Lu harus cek di Photoshop/Paint buat dapet angka pasnya):
+        const SPRITE_BG_DAY = { sx: 0, sy: 0, w: 288, h: 512 }; // Background siang
+        const SPRITE_BASE   = { sx: 584, sy: 0, w: 336, h: 112 }; // Tanah
+        
+        const SPRITE_BIRD_1 = { sx: 230, sy: 762, w: 34, h: 24 }; // Burung sayap bawah
+        const SPRITE_BIRD_2 = { sx: 230, sy: 814, w: 34, h: 24 }; // Burung sayap tengah
+        const SPRITE_BIRD_3 = { sx: 230, sy: 866, w: 34, h: 24 }; // Burung sayap atas
+        
+        const SPRITE_PIPE_TOP = { sx: 112, sy: 646, w: 52, h: 320 }; // Pipa dari atas (hijau)
+        const SPRITE_PIPE_BOT = { sx: 168, sy: 646, w: 52, h: 320 }; // Pipa dari bawah (hijau)
+        
+        const SPRITE_GET_READY = { sx: 590, sy: 118, w: 184, h: 50 }; // Tulisan Get Ready
+        const SPRITE_GAME_OVER = { sx: 790, sy: 118, w: 192, h: 42 }; // Tulisan Game Over
+
+        // Angka (Kecil untuk skor saat main, atau besar? Coba sesuaikan)
+        const NUMBERS = [
+            { sx: 992, sy: 120, w: 24, h: 36 }, // 0
+            { sx: 272, sy: 910, w: 16, h: 36 }, // 1
+            { sx: 584, sy: 320, w: 24, h: 36 }, // 2
+            { sx: 612, sy: 320, w: 24, h: 36 }, // 3
+            { sx: 640, sy: 320, w: 24, h: 36 }, // 4
+            { sx: 668, sy: 320, w: 24, h: 36 }, // 5
+            { sx: 584, sy: 368, w: 24, h: 36 }, // 6
+            { sx: 612, sy: 368, w: 24, h: 36 }, // 7
+            { sx: 640, sy: 368, w: 24, h: 36 }, // 8
+            { sx: 668, sy: 368, w: 24, h: 36 }  // 9
+        ];
+        // ==========================================
+
+
+        // --- FUNGSI MENGGAMBAR SPRITE ---
+        // dx, dy = posisi di canvas. dw, dh = ukuran di canvas (bisa di-scale)
+        function drawSprite(sprite, dx, dy, dw = sprite.w, dh = sprite.h) {
+            ctx.drawImage(
+                spriteSheet, 
+                sprite.sx, sprite.sy, sprite.w, sprite.h, // Potong dari gambar sumber
+                dx, dy, dw, dh                            // Taruh di canvas
+            );
         }
 
-        // --- SISTEM LOADING ---
-        let imagesLoaded = 0;
-        const totalImages = 7 + 10; 
-
-        function checkLoading() {
-            imagesLoaded++;
-            let progress = (imagesLoaded / totalImages) * 100;
-            loadingBar.style.width = progress + "%";
-
-            if (imagesLoaded === totalImages) {
-                document.fonts.ready.then(function () {
-                    setTimeout(() => {
-                        loadingScreen.style.opacity = "0";
-                        setTimeout(() => {
-                            loadingScreen.style.display = "none";
-                            canvas.style.display = "block";
-                            loop(); 
-                        }, 500);
-                    }, 500); 
-                });
-            }
-        }
-
-        birdImg.onload = checkLoading; pipeTopImg.onload = checkLoading; pipeBottomImg.onload = checkLoading;
-        bgImg.onload = checkLoading; baseImg.onload = checkLoading; gameOverImg.onload = checkLoading; messageImg.onload = checkLoading;
-        numImgs.forEach(img => { img.onload = checkLoading; img.onerror = checkLoading; });
-
-        birdImg.onerror = checkLoading; pipeTopImg.onerror = checkLoading; pipeBottomImg.onerror = checkLoading;
-        bgImg.onerror = checkLoading; baseImg.onerror = checkLoading; gameOverImg.onerror = checkLoading; messageImg.onerror = checkLoading;
-
-
-        // --- VARIABEL GAME ---
-        const STATE_MENU = 0;
+        // --- VARIABEL & STATE GAME ---
+        const STATE_GETREADY = 0;
         const STATE_PLAYING = 1;
         const STATE_GAMEOVER = 2;
         
-        let currentState = STATE_MENU;
+        let state = STATE_GETREADY;
         let frames = 0;
         let score = 0;
-        let bestScore = localStorage.getItem("flappyAskerBest") || 0; 
-
-        const baseHeight = 112; 
-        const pipeWidth = 52;
-        let gap = 140; 
-        let gameSpeed = 3; 
+        let gameSpeed = 2;
         let baseX = 0;
 
-        // --- OBJEK BURUNG ---
+        // --- OBJEK ---
+        const bg = {
+            draw: function() {
+                // Scale background biar menuhin lebar layar, tapi tingginya dikurangi area tanah
+                let bgHeight = canvas.height - SPRITE_BASE.h;
+                let scale = bgHeight / SPRITE_BG_DAY.h;
+                let bgWidth = SPRITE_BG_DAY.w * scale;
+
+                for(let i = 0; i <= Math.ceil(canvas.width / bgWidth); i++) {
+                    drawSprite(SPRITE_BG_DAY, i * bgWidth, 0, bgWidth, bgHeight);
+                }
+            }
+        };
+
+        const ground = {
+            draw: function() {
+                if(state === STATE_PLAYING) {
+                    baseX = (baseX - gameSpeed) % (SPRITE_BASE.w / 2); 
+                }
+                for(let i = 0; i <= Math.ceil(canvas.width / SPRITE_BASE.w) + 1; i++) {
+                     drawSprite(SPRITE_BASE, baseX + (i * SPRITE_BASE.w), canvas.height - SPRITE_BASE.h, SPRITE_BASE.w, SPRITE_BASE.h);
+                }
+            }
+        };
+
         const bird = {
-            x: 50, y: 150, width: 34, height: 24, 
-            gravity: 0.6, velocity: 0, jump: -8,
-            rotation: 0,
+            x: 50, y: 150, width: SPRITE_BIRD_1.w, height: SPRITE_BIRD_1.h,
+            gravity: 0.25, velocity: 0, jump: -4.6, rotation: 0,
+            frame: 0,
             
             draw: function() {
+                let currentSprite = SPRITE_BIRD_1;
+                // Animasi kepak sayap
+                if(state === STATE_PLAYING || state === STATE_GETREADY) {
+                    this.frame += 0.1;
+                    if(this.frame % 3 < 1) currentSprite = SPRITE_BIRD_1;
+                    else if(this.frame % 3 < 2) currentSprite = SPRITE_BIRD_2;
+                    else currentSprite = SPRITE_BIRD_3;
+                }
+
                 ctx.save();
                 ctx.translate(this.x + this.width/2, this.y + this.height/2);
-                if(currentState === STATE_PLAYING || currentState === STATE_GAMEOVER){
+                
+                if(state === STATE_PLAYING || state === STATE_GAMEOVER){
                     this.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, (this.velocity * 0.1)));
                     ctx.rotate(this.rotation);
                 }
-                ctx.drawImage(birdImg, -this.width/2, -this.height/2, this.width, this.height);
+                
+                drawSprite(currentSprite, -this.width/2, -this.height/2);
                 ctx.restore();
             },
             update: function() {
                 this.velocity += this.gravity;
                 this.y += this.velocity;
                 
-                if (this.y + this.height >= canvas.height - baseHeight) {
-                    this.y = canvas.height - baseHeight - this.height;
-                    setGameOver();
+                if (this.y + this.height >= canvas.height - SPRITE_BASE.h) {
+                    this.y = canvas.height - SPRITE_BASE.h - this.height;
+                    state = STATE_GAMEOVER;
                 }
                 if(this.y <= 0) {
-                     this.y = 0;
-                     this.velocity = 0;
+                     this.y = 0; this.velocity = 0;
                 }
             },
             flap: function() { this.velocity = this.jump; }
         };
 
-        // --- PIPA ---
-        const pipes = [];
-
-        function drawPipes() {
-            for (let i = 0; i < pipes.length; i++) {
-                let p = pipes[i];
-                
-                for(let y = p.top - pipeTopImg.height; y > -pipeTopImg.height; y -= pipeTopImg.height) {
-                    ctx.drawImage(pipeTopImg, p.x, y, pipeWidth, pipeTopImg.height);
-                }
-                
-                let bottomPipeY = p.top + gap;
-                for(let y = bottomPipeY; y < canvas.height - baseHeight; y += pipeBottomImg.height) {
-                    ctx.drawImage(pipeBottomImg, p.x, y, pipeWidth, pipeBottomImg.height);
-                }
-                
-                if(currentState === STATE_PLAYING) p.x -= gameSpeed; 
-
-                if (currentState === STATE_PLAYING && 
-                    bird.x < p.x + pipeWidth && bird.x + bird.width > p.x && 
-                    (bird.y < p.top || bird.y + bird.height > p.top + gap)) {
-                    setGameOver();
-                }
-
-                if (currentState === STATE_PLAYING && p.x + (pipeWidth/2) === bird.x + (bird.width/2) || 
-                   (p.x + pipeWidth/2 < bird.x + bird.width/2 && p.x + pipeWidth/2 + gameSpeed >= bird.x + bird.width/2) ) {
-                    score++;
-                }
-            }
-            if (pipes.length > 0 && pipes[0].x < -pipeWidth) pipes.shift();
-        }
-
-        function addPipe() {
-            let spawnRate = 100; 
-            if (currentState === STATE_PLAYING && frames % spawnRate === 0) {
-                let minTop = 50; 
-                let maxTop = canvas.height - baseHeight - gap - 50; 
-                let topHeight = Math.random() * (maxTop - minTop) + minTop;
-                pipes.push({ x: canvas.width, top: topHeight });
-            }
-        }
-
-        function setGameOver() {
-            if(currentState !== STATE_GAMEOVER){
-                currentState = STATE_GAMEOVER;
-                if (score > bestScore) {
-                    bestScore = score;
-                    localStorage.setItem("flappyAskerBest", bestScore);
-                }
-            }
-        }
-
-        function resetGame() {
-            bird.y = canvas.height / 2; bird.velocity = 0; bird.rotation = 0;
-            pipes.length = 0; score = 0; frames = 0; 
-            currentState = STATE_PLAYING;
-            bird.flap(); 
+        // (Bagian Pipa dan UI menyusul setelah lu dapet koordinatnya)
+        
+        function drawScore(num, x, y) {
+            // (Fungsi gambar skor menyusul)
         }
 
         // --- KONTROL ---
-        function handleInput() {
-            if (currentState === STATE_MENU) {
-                resetGame(); 
-            } else if (currentState === STATE_PLAYING) {
+        canvas.addEventListener("mousedown", handleAction);
+        canvas.addEventListener("touchstart", (e) => { e.preventDefault(); handleAction(); }, {passive: false});
+
+        function handleAction() {
+            if(state === STATE_GETREADY) {
+                state = STATE_PLAYING;
                 bird.flap();
-            } else if (currentState === STATE_GAMEOVER) {
-                setTimeout(() => { currentState = STATE_MENU; }, 300);
+            } else if (state === STATE_PLAYING) {
+                bird.flap();
+            } else if (state === STATE_GAMEOVER) {
+                bird.y = 150; bird.velocity = 0; bird.rotation = 0;
+                state = STATE_GETREADY;
             }
-        }
-
-        canvas.addEventListener("mousedown", handleInput);
-        canvas.addEventListener("touchstart", (e) => {
-            e.preventDefault(); 
-            handleInput();
-        }, {passive: false});
-        
-        document.addEventListener("keydown", (e) => {
-            if (e.code === "Space") { 
-                handleInput();
-            }
-        });
-
-        // --- MENGGAMBAR ELEMEN ---
-        function drawBackground() {
-            let bgH = canvas.height - baseHeight; 
-            let bgW = (bgImg.width / bgImg.height) * bgH; 
-            for(let i = 0; i <= Math.ceil(canvas.width / bgW); i++) {
-                ctx.drawImage(bgImg, i * bgW, 0, bgW, bgH);
-            }
-        }
-
-        function drawBase() {
-            if(currentState === STATE_PLAYING) {
-                baseX = (baseX - gameSpeed) % (baseImg.width / 2); 
-            }
-            for(let i = 0; i <= Math.ceil(canvas.width / baseImg.width) + 1; i++) {
-                 ctx.drawImage(baseImg, baseX + (i * baseImg.width), canvas.height - baseHeight);
-            }
-        }
-
-        function drawScoreImages(num, x, y, scale = 1, align = "center") {
-            let numStr = num.toString();
-            let totalWidth = 0;
-            let spacing = 2 * scale; 
-
-            for(let i=0; i<numStr.length; i++) {
-                let n = parseInt(numStr[i]);
-                if(numImgs[n]) {
-                    totalWidth += (numImgs[n].width * scale) + spacing;
-                }
-            }
-            totalWidth -= spacing; 
-
-            let currentX = x;
-            if (align === "center") currentX = x - (totalWidth / 2);
-            else if (align === "right") currentX = x - totalWidth;
-
-            for(let i=0; i<numStr.length; i++) {
-                let n = parseInt(numStr[i]);
-                if(numImgs[n]) {
-                    let w = numImgs[n].width * scale;
-                    let h = numImgs[n].height * scale;
-                    ctx.drawImage(numImgs[n], currentX, y, w, h);
-                    currentX += w + spacing;
-                }
-            }
-        }
-
-        function drawStartMenu() {
-            let msgW = messageImg.width * 1.2; 
-            let msgH = messageImg.height * 1.2;
-            ctx.drawImage(messageImg, canvas.width/2 - msgW/2, canvas.height/2 - msgH/2, msgW, msgH);
-        }
-
-        function drawGameOver() {
-            let goWidth = 192; let goHeight = 42;
-            ctx.drawImage(gameOverImg, canvas.width/2 - goWidth/2, canvas.height/2 - 140, goWidth, goHeight);
-
-            // Papan Skor
-            ctx.fillStyle = "#ded895";
-            ctx.strokeStyle = "black";
-            ctx.lineWidth = 4;
-            
-            // Kotak dibikin lebih lebar dikit (jadi 220) biar gak sempit
-            let boardW = 220, boardH = 100; 
-            let boardX = canvas.width/2 - boardW/2;
-            let boardY = canvas.height/2 - 70; 
-            
-            ctx.fillRect(boardX, boardY, boardW, boardH);
-            ctx.strokeRect(boardX, boardY, boardW, boardH);
-
-            ctx.fillStyle = "#e67e22"; 
-            ctx.font = "12px 'Press Start 2P', monospace"; 
-            ctx.textAlign = "center"; 
-            
-            // Geser titik tengah teks ke kiri sebanyak 15 pixel (-15)
-            let rightSideCenter = boardX + (boardW * 0.75) - 15; 
-
-            ctx.fillText("SCORE", rightSideCenter, boardY + 25);
-            ctx.fillText("BEST", rightSideCenter, boardY + 70);
-
-            // Gambar skor pake aset angka 
-            drawScoreImages(score, rightSideCenter, boardY + 35, 0.7, "center");
-            drawScoreImages(bestScore, rightSideCenter, boardY + 80, 0.7, "center");
         }
 
         // --- GAME LOOP ---
         function loop() {
-            ctx.fillStyle = "#70c5ce"; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            drawBackground();
+            bg.draw();
+            
+            // pipes.update & draw (nanti)
 
-            if (currentState === STATE_PLAYING) addPipe(); 
-            drawPipes();
-            drawBase();
+            ground.draw();
 
-            if(currentState === STATE_MENU) {
-                bird.y = 150 + Math.sin(frames * 0.1) * 10;
+            if(state === STATE_GETREADY) {
+                bird.y = 150 + Math.sin(frames * 0.1) * 5;
                 bird.draw();
-                drawStartMenu();
+                drawSprite(SPRITE_GET_READY, canvas.width/2 - SPRITE_GET_READY.w/2, canvas.height/2 - 50);
             } 
-            else if (currentState === STATE_PLAYING) {
+            else if (state === STATE_PLAYING) {
                 bird.update(); 
                 bird.draw(); 
-                drawScoreImages(score, canvas.width/2, 60, 1.2, "center");
             } 
-            else if (currentState === STATE_GAMEOVER) {
-                if(bird.y + bird.height < canvas.height - baseHeight) {
+            else if (state === STATE_GAMEOVER) {
+                if(bird.y + bird.height < canvas.height - SPRITE_BASE.h) {
                     bird.velocity += bird.gravity;
                     bird.y += bird.velocity;
                     bird.rotation = Math.PI / 2; 
                 }
                 bird.draw();
-                drawGameOver();
+                drawSprite(SPRITE_GAME_OVER, canvas.width/2 - SPRITE_GAME_OVER.w/2, canvas.height/2 - 50);
             }
 
             frames++;
             requestAnimationFrame(loop);
         }
+
+        function initGame() {
+            loop();
+        }
+
     </script>
 </body>
 </html>
