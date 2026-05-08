@@ -36,7 +36,7 @@
             display: none; 
             background-color: #000;
             max-width: 500px;
-            /* Biar pixel art-nya gak ngeblur pas di zoom */
+            /* Pastikan CSS ini ada untuk membantu ketajaman di beberapa browser */
             image-rendering: -moz-crisp-edges;
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
@@ -64,15 +64,16 @@
         function resizeCanvas() {
             canvas.width = Math.min(window.innerWidth, 500);
             canvas.height = window.innerHeight;
+            
+            // PENTING: Disable smoothing setiap kali canvas di-resize
+            // Ini yang bikin gambar pixel art tetap tajam!
+            ctx.imageSmoothingEnabled = false;
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // --- GLOBAL SCALE ---
-        // Karena sprite aslinya kecil, kita perbesar 2.5x lipat biar enak dilihat
         const SCALE = 2.5; 
 
-        // --- LOAD SPRITE SHEET ---
         const spriteSheet = new Image();
         spriteSheet.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/main/assets/sprites.png"; 
 
@@ -93,54 +94,34 @@
             }
         }, 100);
 
-        // ==========================================
-        // DATA KOORDINAT SPRITE (Dari lu!)
-        // ==========================================
+        // Koordinat Sprite
         const S_BG_DAY = { sx: 0, sy: 0, w: 144, h: 256 };
         const S_BASE   = { sx: 292, sy: 0, w: 168, h: 56 }; 
-        // Note: Posisi X (sx) harusnya positif, jadi gue ilangin minusnya
-        
         const S_BIRD = [
-            { sx: 3, sy: 491, w: 17, h: 12 },   // Flap Up
-            { sx: 31, sy: 491, w: 17, h: 12 },  // Flat
-            { sx: 59, sy: 491, w: 17, h: 12 }   // Flap Down
+            { sx: 3, sy: 491, w: 17, h: 12 },   
+            { sx: 31, sy: 491, w: 17, h: 12 },  
+            { sx: 59, sy: 491, w: 17, h: 12 }   
         ];
-        
         const S_PIPE_TOP = { sx: 56, sy: 323, w: 26, h: 160 };
         const S_PIPE_BOT = { sx: 84, sy: 323, w: 26, h: 160 };
-        
         const S_SCOREBOARD = { sx: 3, sy: 259, w: 113, h: 57 };
         const S_PLAY_BTN   = { sx: 354, sy: 118, w: 52, h: 29 };
-        
         const S_TEXT_GET   = { sx: 295, sy: 59, w: 32, h: 21 };
         const S_TEXT_READY = { sx: 329, sy: 59, w: 58, h: 25 };
         const S_TEXT_GAME  = { sx: 395, sy: 59, w: 49, h: 21 };
         const S_TEXT_OVER  = { sx: 449, sy: 59, w: 42, h: 21 };
 
-        // Angka 0-9 (Gue pakenya yang ukuran gede di sprite sheet, cek koordinatnya lagi ya kalau beda)
         const S_NUMBERS = [
-            {sx: 496, sy: 60, w: 12, h: 18}, // 0
-            {sx: 136, sy: 455, w: 8, h: 18}, // 1
-            {sx: 292, sy: 160, w: 12, h: 18}, // 2
-            {sx: 306, sy: 160, w: 12, h: 18}, // 3
-            {sx: 320, sy: 160, w: 12, h: 18}, // 4
-            {sx: 334, sy: 160, w: 12, h: 18}, // 5
-            {sx: 292, sy: 184, w: 12, h: 18}, // 6
-            {sx: 306, sy: 184, w: 12, h: 18}, // 7
-            {sx: 320, sy: 184, w: 12, h: 18}, // 8
-            {sx: 334, sy: 184, w: 12, h: 18}  // 9
+            {sx: 496, sy: 60, w: 12, h: 18}, {sx: 136, sy: 455, w: 8, h: 18}, {sx: 292, sy: 160, w: 12, h: 18},
+            {sx: 306, sy: 160, w: 12, h: 18}, {sx: 320, sy: 160, w: 12, h: 18}, {sx: 334, sy: 160, w: 12, h: 18},
+            {sx: 292, sy: 184, w: 12, h: 18}, {sx: 306, sy: 184, w: 12, h: 18}, {sx: 320, sy: 184, w: 12, h: 18},
+            {sx: 334, sy: 184, w: 12, h: 18}
         ];
         
-        // --- FUNGSI MENGGAMBAR SPRITE ---
         function drawSprite(sprite, dx, dy, dw = sprite.w * SCALE, dh = sprite.h * SCALE) {
-            ctx.drawImage(
-                spriteSheet, 
-                sprite.sx, sprite.sy, sprite.w, sprite.h, 
-                dx, dy, dw, dh                            
-            );
+            ctx.drawImage(spriteSheet, sprite.sx, sprite.sy, sprite.w, sprite.h, Math.floor(dx), Math.floor(dy), dw, dh);
         }
 
-        // --- VARIABEL GAME ---
         const STATE_GETREADY = 0;
         const STATE_PLAYING = 1;
         const STATE_GAMEOVER = 2;
@@ -152,23 +133,24 @@
 
         const baseHeight = S_BASE.h * SCALE; 
         const pipeW = S_PIPE_TOP.w * SCALE;
-        let gap = 120; // Celah pipa, sesuaikan kalau terlalu susah
+        let gap = 120; 
         let gameSpeed = 3; 
 
-        // --- OBJEK ---
+        // --- SIMPAN POSISI TOMBOL PLAY ---
+        // Kita simpan posisi x, y, width, height dari tombol "Play" 
+        // supaya bisa dicek pas ada klik
+        let playBtnRect = { x: 0, y: 0, w: 0, h: 0 };
+
         const bg = {
             draw: function() {
                 let bgH = S_BG_DAY.h * SCALE;
                 let bgW = S_BG_DAY.w * SCALE;
-                // Geser Y ke bawah biar pas di atas tanah
                 let bgY = canvas.height - baseHeight - bgH; 
 
                 for(let i = 0; i <= Math.ceil(canvas.width / bgW); i++) {
                     drawSprite(S_BG_DAY, i * bgW, bgY, bgW, bgH);
-                    
-                    // Isi celah atas kalau layar terlalu tinggi
                     if(bgY > 0) {
-                        ctx.fillStyle = "#4ec0ca"; // Warna biru langit 
+                        ctx.fillStyle = "#4ec0ca"; 
                         ctx.fillRect(i * bgW, 0, bgW, bgY);
                     }
                 }
@@ -188,11 +170,8 @@
         };
 
         const bird = {
-            x: 50, y: 150, 
-            w: S_BIRD[0].w * SCALE, 
-            h: S_BIRD[0].h * SCALE,
-            gravity: 0.4, velocity: 0, jump: -6, rotation: 0,
-            frame: 0,
+            x: 50, y: 150, w: S_BIRD[0].w * SCALE, h: S_BIRD[0].h * SCALE,
+            gravity: 0.4, velocity: 0, jump: -6, rotation: 0, frame: 0,
             
             draw: function() {
                 let currentSprite = S_BIRD[0];
@@ -234,23 +213,17 @@
             for (let i = 0; i < pipes.length; i++) {
                 let p = pipes[i];
                 let pH = S_PIPE_TOP.h * SCALE;
-                
-                // Gambar Pipa Atas
                 drawSprite(S_PIPE_TOP, p.x, p.top - pH);
-                
-                // Gambar Pipa Bawah
                 drawSprite(S_PIPE_BOT, p.x, p.top + gap);
                 
                 if(state === STATE_PLAYING) p.x -= gameSpeed; 
 
-                // Tabrakan
                 if (state === STATE_PLAYING && 
                     bird.x < p.x + pipeW && bird.x + bird.w > p.x && 
                     (bird.y < p.top || bird.y + bird.h > p.top + gap)) {
                     setGameOver();
                 }
 
-                // Nambah skor
                 if (state === STATE_PLAYING && p.x + (pipeW/2) === bird.x + (bird.w/2) || 
                    (p.x + pipeW/2 < bird.x + bird.w/2 && p.x + pipeW/2 + gameSpeed >= bird.x + bird.w/2) ) {
                     score++;
@@ -268,7 +241,6 @@
             }
         }
 
-        // --- FUNGSI MENGGAMBAR UI ---
         function drawScoreImages(num, x, y, scale = 1, align = "center") {
             let numStr = num.toString();
             let totalWidth = 0;
@@ -295,7 +267,6 @@
 
         function drawUI() {
             if (state === STATE_GETREADY) {
-                // Gambar "Get Ready" (Digabungin)
                 let totalW = (S_TEXT_GET.w + S_TEXT_READY.w + 5) * SCALE;
                 let getX = canvas.width/2 - totalW/2;
                 let readyX = getX + (S_TEXT_GET.w * SCALE) + 10;
@@ -304,13 +275,17 @@
                 drawSprite(S_TEXT_GET, getX, textY);
                 drawSprite(S_TEXT_READY, readyX, textY);
 
-                // Tombol Play
-                drawSprite(S_PLAY_BTN, canvas.width/2 - (S_PLAY_BTN.w * SCALE)/2, canvas.height/2);
+                // Hitung posisi tombol Play dan simpan
+                playBtnRect.w = S_PLAY_BTN.w * SCALE;
+                playBtnRect.h = S_PLAY_BTN.h * SCALE;
+                playBtnRect.x = canvas.width/2 - playBtnRect.w/2;
+                playBtnRect.y = canvas.height/2;
+
+                drawSprite(S_PLAY_BTN, playBtnRect.x, playBtnRect.y);
 
             } else if (state === STATE_PLAYING) {
                 drawScoreImages(score, canvas.width/2, 50, 1.5, "center");
             } else if (state === STATE_GAMEOVER) {
-                // Gambar "Game Over" (Digabungin)
                 let totalW = (S_TEXT_GAME.w + S_TEXT_OVER.w + 5) * SCALE;
                 let gameX = canvas.width/2 - totalW/2;
                 let overX = gameX + (S_TEXT_GAME.w * SCALE) + 10;
@@ -319,7 +294,6 @@
                 drawSprite(S_TEXT_GAME, gameX, textY);
                 drawSprite(S_TEXT_OVER, overX, textY);
 
-                // Scoreboard
                 let boardW = S_SCOREBOARD.w * SCALE;
                 let boardH = S_SCOREBOARD.h * SCALE;
                 let boardX = canvas.width/2 - boardW/2;
@@ -327,12 +301,16 @@
 
                 drawSprite(S_SCOREBOARD, boardX, boardY);
 
-                // Angka Skor di Scoreboard (Disesuaikan posisinya)
                 drawScoreImages(score, boardX + boardW - 20, boardY + 35, 0.8, "right");
                 drawScoreImages(bestScore, boardX + boardW - 20, boardY + 95, 0.8, "right");
 
-                // Tombol Play lagi
-                drawSprite(S_PLAY_BTN, canvas.width/2 - (S_PLAY_BTN.w * SCALE)/2, boardY + boardH + 20);
+                // Hitung posisi tombol Play di layar Game Over dan simpan
+                playBtnRect.w = S_PLAY_BTN.w * SCALE;
+                playBtnRect.h = S_PLAY_BTN.h * SCALE;
+                playBtnRect.x = canvas.width/2 - playBtnRect.w/2;
+                playBtnRect.y = boardY + boardH + 20;
+
+                drawSprite(S_PLAY_BTN, playBtnRect.x, playBtnRect.y);
             }
         }
 
@@ -353,19 +331,55 @@
             bird.flap(); 
         }
 
-        function handleAction() {
+        // --- KONTROL KLIK/TAP DENGAN DETEKSI TOMBOL ---
+        function handleInput(e) {
+            let rect = canvas.getBoundingClientRect();
+            
+            // Ambil posisi klik (support mouse atau touch)
+            let clickX, clickY;
+            if (e.type === 'touchstart') {
+                clickX = e.touches[0].clientX - rect.left;
+                clickY = e.touches[0].clientY - rect.top;
+            } else {
+                clickX = e.clientX - rect.left;
+                clickY = e.clientY - rect.top;
+            }
+
             if(state === STATE_GETREADY) {
-                state = STATE_PLAYING;
-                bird.flap();
+                // Cek apakah klik ada di area tombol Play
+                if (clickX >= playBtnRect.x && clickX <= playBtnRect.x + playBtnRect.w &&
+                    clickY >= playBtnRect.y && clickY <= playBtnRect.y + playBtnRect.h) {
+                    resetGame();
+                }
             } else if (state === STATE_PLAYING) {
+                // Kalo lagi main, tap di mana aja burungnya loncat
                 bird.flap();
             } else if (state === STATE_GAMEOVER) {
-                // Delay bentar biar nggak kepencet ga sengaja
-                setTimeout(() => { state = STATE_GETREADY; }, 300);
+                // Cek apakah klik ada di area tombol Play di Game Over
+                if (clickX >= playBtnRect.x && clickX <= playBtnRect.x + playBtnRect.w &&
+                    clickY >= playBtnRect.y && clickY <= playBtnRect.y + playBtnRect.h) {
+                    // Beri sedikit delay sebelum restart biar nggak kerasa aneh
+                    setTimeout(() => { state = STATE_GETREADY; }, 100);
+                }
             }
         }
 
-        document.addEventListener("keydown", (e) => { if (e.code === "Space") handleAction(); });
+        canvas.addEventListener("mousedown", handleInput);
+        canvas.addEventListener("touchstart", (e) => { 
+            e.preventDefault(); // Mencegah scrolling atau zoom default browser
+            handleInput(e); 
+        }, {passive: false});
+
+        // Spasi buat lompat tetep bisa dipake
+        document.addEventListener("keydown", (e) => { 
+            if (e.code === "Space") {
+                if (state === STATE_GETREADY || state === STATE_GAMEOVER) {
+                    resetGame();
+                } else if (state === STATE_PLAYING) {
+                    bird.flap();
+                }
+            } 
+        });
 
         function loop() {
             ctx.fillStyle = "#4ec0ca"; 
@@ -400,9 +414,10 @@
             requestAnimationFrame(loop);
         }
 
-        function initGame() { loop(); }
+        function initGame() { 
+            ctx.imageSmoothingEnabled = false; // Set lagi saat mulai game
+            loop(); 
+        }
     </script>
 </body>
 </html>
-
-
