@@ -103,6 +103,13 @@
             PLATINUM: { sx: 121, sy: 258, w: 22, h: 22 }
         };
 
+        // --- DATA LOGO TUTORIAL MESSAGE ---
+        const S_TUTORIAL_BIRD  = { sx: 310, sy: 91, w: 19, h: 16 };
+        const S_TUTORIAL_ARROW = { sx: 316, sy: 110, w: 7, h: 7 };
+        const S_TUTORIAL_FINGER= { sx: 316, sy: 127, w: 10, h: 13 };
+        const S_TUTORIAL_TAP_L = { sx: 292, sy: 124, w: 21, h: 9 };
+        const S_TUTORIAL_TAP_R = { sx: 328, sy: 124, w: 21, h: 9 };
+
         // --- LOAD SPRITE ---
         const spriteSheet = new Image();
         spriteSheet.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/main/assets/sprites.png"; 
@@ -280,19 +287,23 @@
 
         function drawUI() {
             if (state === STATE_GETREADY) {
-                let logoW = S_LOGO_FLAPPY.w * SCALE;
-                let logoH = S_LOGO_FLAPPY.h * SCALE;
-                drawSprite(S_LOGO_FLAPPY, canvas.width/2 - logoW/2, canvas.height/2 - 150);
-
+                let tutCenterY = canvas.height / 2 + 10;
+                
+                // Tulisan "Get Ready!" di atas logo tutorial
                 let totalW = (S_TEXT_GET.w + S_TEXT_READY.w + 5) * SCALE;
-                let textY = canvas.height/2 - 80;
+                let textY = tutCenterY - 120;
                 drawSprite(S_TEXT_GET, canvas.width/2 - totalW/2, textY);
                 drawSprite(S_TEXT_READY, canvas.width/2 - totalW/2 + (S_TEXT_GET.w * SCALE) + 10, textY);
                 
-                playBtnRect.w = S_PLAY_BTN.w * SCALE; playBtnRect.h = S_PLAY_BTN.h * SCALE;
-                playBtnRect.x = canvas.width/2 - playBtnRect.w/2; playBtnRect.y = canvas.height/2;
-                drawSprite(S_PLAY_BTN, playBtnRect.x, playBtnRect.y);
+                // --- KUMPULAN LOGO TUTORIAL (MESSAGE) ---
+                drawSprite(S_TUTORIAL_BIRD, canvas.width/2 - (S_TUTORIAL_BIRD.w * SCALE)/2, tutCenterY - 50);
+                drawSprite(S_TUTORIAL_ARROW, canvas.width/2 - (S_TUTORIAL_ARROW.w * SCALE)/2, tutCenterY - 10);
+                drawSprite(S_TUTORIAL_FINGER, canvas.width/2 - (S_TUTORIAL_FINGER.w * SCALE)/2, tutCenterY + 15);
+                drawSprite(S_TUTORIAL_TAP_L, canvas.width/2 - (S_TUTORIAL_FINGER.w * SCALE)/2 - (S_TUTORIAL_TAP_L.w * SCALE) - 10, tutCenterY + 20);
+                drawSprite(S_TUTORIAL_TAP_R, canvas.width/2 + (S_TUTORIAL_FINGER.w * SCALE)/2 + 10, tutCenterY + 20);
 
+                // Nggak ada tombol play. Pemain tinggal tap buat main.
+                
             } else if (state === STATE_PLAYING) {
                 drawScoreImages(score, canvas.width/2, 50, 1.2, "center"); 
 
@@ -308,9 +319,7 @@
                 let boardY = canvas.height/2 - 50;
                 drawSprite(S_SCOREBOARD, boardX, boardY);
 
-                // --- POSISI SKOR DIPERBAIKI ---
-                // X digeser agak ke kiri (dari -22 ke -28)
-                // Y diturunin biar lepas dari tulisan "SCORE" dan "BEST" (dari +42/+84 ke +50/+92)
+                // --- POSISI SKOR YANG UDAH PAS ---
                 let scoreXAlign = boardX + boardW - 28; 
                 drawScoreImages(score, scoreXAlign, boardY + 50, 0.45, "right");
                 drawScoreImages(bestScore, scoreXAlign, boardY + 92, 0.45, "right");
@@ -324,13 +333,15 @@
                 if (medalSprite) {
                     let medalW = medalSprite.w * SCALE;
                     let medalH = medalSprite.h * SCALE;
-                    // --- POSISI MEDALI DIPERBAIKI ---
-                    // Digeser agak ke kiri (0.20) dan agak ke atas (0.52) biar pas masuk bolongan
+                    // --- POSISI MEDALI YANG UDAH PAS ---
                     let medalX = boardX + (boardW * 0.20) - (medalW / 2); 
                     let medalY = boardY + (boardH * 0.52) - (medalH / 2); 
                     drawSprite(medalSprite, medalX, medalY);
                 }
 
+                // Tombol Play dimunculin lagi pas Game Over
+                playBtnRect.w = S_PLAY_BTN.w * SCALE; 
+                playBtnRect.h = S_PLAY_BTN.h * SCALE;
                 playBtnRect.x = canvas.width/2 - playBtnRect.w/2;
                 playBtnRect.y = boardY + boardH + 20;
                 drawSprite(S_PLAY_BTN, playBtnRect.x, playBtnRect.y);
@@ -366,13 +377,12 @@
             }
 
             if(state === STATE_GETREADY) {
-                if (clickX >= playBtnRect.x && clickX <= playBtnRect.x + playBtnRect.w &&
-                    clickY >= playBtnRect.y && clickY <= playBtnRect.y + playBtnRect.h) {
-                    resetGame();
-                }
+                // Di menu Get Ready, klik/tap dimana aja bakal langsung mulai!
+                resetGame();
             } else if (state === STATE_PLAYING) {
                 bird.flap();
             } else if (state === STATE_GAMEOVER) {
+                // Di menu Game Over, wajib nge-tap area tombol play
                 if (clickX >= playBtnRect.x && clickX <= playBtnRect.x + playBtnRect.w &&
                     clickY >= playBtnRect.y && clickY <= playBtnRect.y + playBtnRect.h) {
                     setTimeout(() => { state = STATE_GETREADY; }, 100);
