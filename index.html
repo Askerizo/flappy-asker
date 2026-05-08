@@ -305,19 +305,20 @@
             ctx.strokeStyle = "black";
             ctx.lineWidth = 4;
             
-            let boardW = 200, boardH = 100; 
+            // Kotak dibikin lebih lebar dikit (jadi 220) biar gak sempit
+            let boardW = 220, boardH = 100; 
             let boardX = canvas.width/2 - boardW/2;
             let boardY = canvas.height/2 - 70; 
             
             ctx.fillRect(boardX, boardY, boardW, boardH);
             ctx.strokeRect(boardX, boardY, boardW, boardH);
 
-            // Teks SCORE dan BEST (Font diubah ke retro, posisi di tengah kanan)
             ctx.fillStyle = "#e67e22"; 
             ctx.font = "12px 'Press Start 2P', monospace"; 
             ctx.textAlign = "center"; 
             
-            let rightSideCenter = boardX + (boardW * 0.75); 
+            // Geser titik tengah teks ke kiri sebanyak 15 pixel (-15)
+            let rightSideCenter = boardX + (boardW * 0.75) - 15; 
 
             ctx.fillText("SCORE", rightSideCenter, boardY + 25);
             ctx.fillText("BEST", rightSideCenter, boardY + 70);
