@@ -22,13 +22,15 @@
             z-index: 9999; transition: opacity 0.5s ease;
         }
 
-        #loading-logo-container {
-            margin-bottom: 30px;
-            width: 222.5px; 
-            height: 60px;
+        /* Container buat gambar logo biar gampang diatur ukurannya */
+        .loading-logo {
+            width: 250px; /* Lebarnya disesuaikan, bisa digede/kecilin */
+            margin-bottom: 40px;
+            /* Biar tajem kalau di-scale up */
+            image-rendering: pixelated; 
         }
 
-        .loading-bar-bg { width: 200px; height: 10px; background-color: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; border: 2px solid white;}
+        .loading-bar-bg { width: 200px; height: 12px; background-color: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; border: 2px solid white;}
         .loading-bar-fill { width: 0%; height: 100%; background-color: #f1c40f; transition: width 0.2s ease; }
 
         canvas { 
@@ -42,8 +44,8 @@
 <body>
 
     <div id="loading-screen">
-        <canvas id="loadingLogoCanvas" width="222" height="60"></canvas>
-        <div style="height: 30px;"></div> 
+        <img class="loading-logo" src="https://raw.githubusercontent.com/Askerizo/flappy-asker/76996e699d113d041cdde32888f1aadf78608dbc/assets/logo.png" alt="Flappy Bird Logo">
+        
         <div class="loading-bar-bg">
             <div class="loading-bar-fill" id="loading-bar"></div>
         </div>
@@ -57,8 +59,6 @@
         
         const loadingScreen = document.getElementById("loading-screen");
         const loadingBar = document.getElementById("loading-bar");
-        const logoCanvas = document.getElementById("loadingLogoCanvas");
-        const logoCtx = logoCanvas.getContext("2d");
 
         function resizeCanvas() {
             canvas.width = Math.min(window.innerWidth, 500);
@@ -110,15 +110,6 @@
         spriteSheet.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/main/assets/sprites.png"; 
 
         let progress = 0;
-        
-        spriteSheet.onload = () => {
-            logoCtx.imageSmoothingEnabled = false;
-            logoCtx.drawImage(
-                spriteSheet, 
-                S_LOGO_FLAPPY.sx, S_LOGO_FLAPPY.sy, S_LOGO_FLAPPY.w, S_LOGO_FLAPPY.h, 
-                0, 0, S_LOGO_FLAPPY.w * SCALE, S_LOGO_FLAPPY.h * SCALE
-            );
-        };
 
         const loadingInterval = setInterval(() => {
             progress += 10;
@@ -222,7 +213,6 @@
                 drawSprite(S_PIPE_BOT, p.x, p.top + gap);
                 if(state === STATE_PLAYING) p.x -= gameSpeed; 
 
-                // Perbaiki toleransi hitbox agar tidak terlalu sulit
                 let tolerance = 5; 
                 if (state === STATE_PLAYING && 
                     bird.x + tolerance < p.x + pipeW && bird.x + bird.w - tolerance > p.x && 
@@ -248,7 +238,6 @@
         function drawScoreImages(num, x, y, numScale = 1, align = "center") {
             let numStr = num.toString();
             let totalWidth = 0;
-            // Spacing disesuaikan dengan scale
             let spacing = 1 * numScale * SCALE; 
 
             for(let i=0; i<numStr.length; i++) {
@@ -300,7 +289,6 @@
                 let boardY = canvas.height/2 - 50;
                 drawSprite(S_SCOREBOARD, boardX, boardY);
 
-                // --- ANGKA LEBIH KECIL (0.45) DAN DIGESER Y-NYA ---
                 drawScoreImages(score, boardX + boardW - 25, boardY + 42, 0.45, "right");
                 drawScoreImages(bestScore, boardX + boardW - 25, boardY + 84, 0.45, "right");
 
@@ -311,8 +299,10 @@
                 else if (score >= 10) medalSprite = S_MEDALS.BRONZE;
 
                 if (medalSprite) {
-                    let medalX = boardX + (boardW * 0.23); 
-                    let medalY = boardY + (boardH * 0.40); 
+                    let medalW = medalSprite.w * SCALE;
+                    let medalH = medalSprite.h * SCALE;
+                    let medalX = boardX + (boardW * 0.22) - (medalW / 2); 
+                    let medalY = boardY + (boardH * 0.57) - (medalH / 2); 
                     drawSprite(medalSprite, medalX, medalY);
                 }
 
