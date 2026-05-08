@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FlappyBird By Asker</title>
+    <title>FlappyBird by Asker</title>
     <style>
         body {
             margin: 0; padding: 0; background-color: #000;
@@ -20,14 +20,12 @@
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             z-index: 9999; transition: opacity 0.5s ease;
+            display: none; 
         }
 
-        /* Container buat gambar logo biar gampang diatur ukurannya */
-        .loading-logo {
-            width: 250px; /* Lebarnya disesuaikan, bisa digede/kecilin */
-            margin-bottom: 40px;
-            /* Biar tajem kalau di-scale up */
-            image-rendering: pixelated; 
+        #loading-logo-canvas {
+            margin-bottom: 30px;
+            image-rendering: pixelated;
         }
 
         .loading-bar-bg { width: 200px; height: 12px; background-color: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; border: 2px solid white;}
@@ -44,8 +42,7 @@
 <body>
 
     <div id="loading-screen">
-        <img class="loading-logo" src="https://raw.githubusercontent.com/Askerizo/flappy-asker/76996e699d113d041cdde32888f1aadf78608dbc/assets/logo.png" alt="Flappy Bird Logo">
-        
+        <canvas id="loading-logo-canvas"></canvas>
         <div class="loading-bar-bg">
             <div class="loading-bar-fill" id="loading-bar"></div>
         </div>
@@ -59,6 +56,8 @@
         
         const loadingScreen = document.getElementById("loading-screen");
         const loadingBar = document.getElementById("loading-bar");
+        const logoCanvas = document.getElementById("loading-logo-canvas");
+        const logoCtx = logoCanvas.getContext("2d");
 
         function resizeCanvas() {
             canvas.width = Math.min(window.innerWidth, 500);
@@ -88,7 +87,6 @@
         const S_TEXT_READY = { sx: 329, sy: 59, w: 58, h: 25 };
         const S_TEXT_GAME  = { sx: 395, sy: 59, w: 49, h: 21 };
         const S_TEXT_OVER  = { sx: 449, sy: 59, w: 42, h: 21 };
-        
         const S_LOGO_FLAPPY = { sx: 351, sy: 91, w: 89, h: 24 };
 
         const S_NUMBERS = [
@@ -105,29 +103,62 @@
             PLATINUM: { sx: 121, sy: 258, w: 22, h: 22 }
         };
 
-        // --- LOAD SPRITE & LOADING LOGIC ---
+        // --- DATA TUTORIAL MESSAGE ---
+        const S_TUTORIAL_BIRD  = { sx: 310, sy: 91, w: 19, h: 16 };
+        const S_TUTORIAL_ARROW = { sx: 316, sy: 110, w: 7, h: 7 };
+        const S_TUTORIAL_FINGER= { sx: 316, sy: 127, w: 10, h: 13 };
+        const S_TUTORIAL_TAP_L = { sx: 292, sy: 124, w: 21, h: 9 };
+        const S_TUTORIAL_TAP_R = { sx: 328, sy: 124, w: 21, h: 9 };
+
+
+        // --- LOAD SPRITE ---
         const spriteSheet = new Image();
         spriteSheet.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/main/assets/sprites.png"; 
 
-        let progress = 0;
+        spriteSheet.onload = () => {
+            startLoadingAnimation();
+        };
 
-        const loadingInterval = setInterval(() => {
-            progress += 10;
-            loadingBar.style.width = progress + "%";
-            
-            if (progress >= 100 && spriteSheet.complete) {
-                clearInterval(loadingInterval);
-                setTimeout(() => {
-                    loadingScreen.style.opacity = "0";
+        spriteSheet.onerror = () => {
+             alert("Gagal memuat gambar (sprite sheet). Cek koneksi internet atau link GitHub!");
+        };
+
+        // --- LOADING LOGIC ---
+        function startLoadingAnimation() {
+            loadingScreen.style.display = "flex";
+
+            let logoW = S_LOGO_FLAPPY.w * SCALE;
+            let logoH = S_LOGO_FLAPPY.h * SCALE;
+            logoCanvas.width = logoW;
+            logoCanvas.height = logoH;
+            logoCtx.imageSmoothingEnabled = false;
+            logoCtx.drawImage(
+                spriteSheet, 
+                S_LOGO_FLAPPY.sx, S_LOGO_FLAPPY.sy, S_LOGO_FLAPPY.w, S_LOGO_FLAPPY.h, 
+                0, 0, logoW, logoH
+            );
+
+            let progress = 0;
+            const loadingInterval = setInterval(() => {
+                progress += Math.floor(Math.random() * 15) + 5; 
+                if(progress > 100) progress = 100;
+                
+                loadingBar.style.width = progress + "%";
+                
+                if (progress === 100) {
+                    clearInterval(loadingInterval);
                     setTimeout(() => {
-                        loadingScreen.style.display = "none";
-                        canvas.style.display = "block";
-                        ctx.imageSmoothingEnabled = false;
-                        initGame(); 
-                    }, 500);
-                }, 400);
-            }
-        }, 100);
+                        loadingScreen.style.opacity = "0";
+                        setTimeout(() => {
+                            loadingScreen.style.display = "none";
+                            canvas.style.display = "block";
+                            ctx.imageSmoothingEnabled = false;
+                            initGame(); 
+                        }, 500);
+                    }, 500); 
+                }
+            }, 100);
+        }
 
         // --- FUNGSI MENGGAMBAR SPRITE ---
         function drawSprite(sprite, dx, dy, dw = sprite.w * SCALE, dh = sprite.h * SCALE) {
@@ -270,9 +301,26 @@
                 drawSprite(S_TEXT_GET, canvas.width/2 - totalW/2, textY);
                 drawSprite(S_TEXT_READY, canvas.width/2 - totalW/2 + (S_TEXT_GET.w * SCALE) + 10, textY);
                 
-                playBtnRect.w = S_PLAY_BTN.w * SCALE; playBtnRect.h = S_PLAY_BTN.h * SCALE;
-                playBtnRect.x = canvas.width/2 - playBtnRect.w/2; playBtnRect.y = canvas.height/2;
-                drawSprite(S_PLAY_BTN, playBtnRect.x, playBtnRect.y);
+                // --- GAMBAR TUTORIAL MESSAGE ---
+                // Posisikan semua sprite tutorial secara manual biar rapi di tengah
+                let tutCenterX = canvas.width / 2;
+                let tutCenterY = canvas.height / 2 + 10;
+                
+                // Burung (ngelewatin batas tengah sedikit ke atas)
+                drawSprite(S_TUTORIAL_BIRD, tutCenterX - (S_TUTORIAL_BIRD.w * SCALE)/2, tutCenterY - 40);
+                
+                // Panah ke atas
+                drawSprite(S_TUTORIAL_ARROW, tutCenterX - (S_TUTORIAL_ARROW.w * SCALE)/2, tutCenterY - 5);
+                
+                // Telunjuk
+                drawSprite(S_TUTORIAL_FINGER, tutCenterX - (S_TUTORIAL_FINGER.w * SCALE)/2, tutCenterY + 15);
+                
+                // Tulisan TAP Kiri
+                drawSprite(S_TUTORIAL_TAP_L, tutCenterX - (S_TUTORIAL_TAP_L.w * SCALE) - 15, tutCenterY + 15);
+                
+                // Tulisan TAP Kanan
+                drawSprite(S_TUTORIAL_TAP_R, tutCenterX + 15, tutCenterY + 15);
+
 
             } else if (state === STATE_PLAYING) {
                 drawScoreImages(score, canvas.width/2, 50, 1.2, "center"); 
@@ -289,8 +337,11 @@
                 let boardY = canvas.height/2 - 50;
                 drawSprite(S_SCOREBOARD, boardX, boardY);
 
-                drawScoreImages(score, boardX + boardW - 25, boardY + 42, 0.45, "right");
-                drawScoreImages(bestScore, boardX + boardW - 25, boardY + 84, 0.45, "right");
+                // --- POSISI SKOR DIPERBAIKI ---
+                // X disesuaikan biar bener-bener rata kanan sesuai dengan lebar papan
+                let scoreXAlign = boardX + boardW - 22; 
+                drawScoreImages(score, scoreXAlign, boardY + 38, 0.45, "right");
+                drawScoreImages(bestScore, scoreXAlign, boardY + 80, 0.45, "right");
 
                 let medalSprite = null;
                 if (score >= 40) medalSprite = S_MEDALS.PLATINUM;
@@ -341,10 +392,7 @@
             }
 
             if(state === STATE_GETREADY) {
-                if (clickX >= playBtnRect.x && clickX <= playBtnRect.x + playBtnRect.w &&
-                    clickY >= playBtnRect.y && clickY <= playBtnRect.y + playBtnRect.h) {
-                    resetGame();
-                }
+                resetGame();
             } else if (state === STATE_PLAYING) {
                 bird.flap();
             } else if (state === STATE_GAMEOVER) {
