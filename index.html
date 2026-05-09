@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy Asker Pro</title>
+    <title>FlappyBird by Asker</title>
     <style>
         body {
             margin: 0; padding: 0; background-color: #000;
@@ -74,7 +74,11 @@
         // ==========================================
         const S_BG_DAY = { sx: 0, sy: 0, w: 144, h: 256 };
         const S_BASE   = { sx: 292, sy: 0, w: 168, h: 56 }; 
-        const S_BIRD = { w: 17, h: 12 }; // Cuma butuh ukuran hitbox aslinya
+        const S_BIRD = [
+            { sx: 3, sy: 491, w: 17, h: 12 },   
+            { sx: 31, sy: 491, w: 17, h: 12 },  
+            { sx: 59, sy: 491, w: 17, h: 12 }   
+        ];
         const S_PIPE_TOP = { sx: 56, sy: 323, w: 26, h: 160 };
         const S_PIPE_BOT = { sx: 84, sy: 323, w: 26, h: 160 };
         const S_SCOREBOARD = { sx: 3, sy: 259, w: 113, h: 57 };
@@ -99,31 +103,19 @@
             PLATINUM: { sx: 121, sy: 258, w: 22, h: 22 }
         };
 
-        // --- LOAD SPRITE & GAMBAR MUKA ---
+        // --- DATA LOGO TUTORIAL MESSAGE ---
+        const S_TUTORIAL_BIRD  = { sx: 310, sy: 91, w: 19, h: 16 };
+        const S_TUTORIAL_ARROW = { sx: 316, sy: 110, w: 7, h: 7 };
+        const S_TUTORIAL_FINGER= { sx: 316, sy: 127, w: 10, h: 13 };
+        const S_TUTORIAL_TAP_L = { sx: 292, sy: 124, w: 21, h: 9 };
+        const S_TUTORIAL_TAP_R = { sx: 328, sy: 124, w: 21, h: 9 };
+
+        // --- LOAD SPRITE ---
         const spriteSheet = new Image();
         spriteSheet.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/main/assets/sprites.png"; 
 
-        const faceImg = new Image();
-        // Load muka temen lu dari repo
-        faceImg.src = "https://raw.githubusercontent.com/Askerizo/flappy-asker/main/assets/face.png";
-
-        let assetsLoaded = 0;
-        const totalAssets = 2; // spriteSheet + faceImg
-
-        function checkLoad() {
-            assetsLoaded++;
-            if (assetsLoaded === totalAssets) {
-                startLoadingAnimation();
-            }
-        }
-
-        spriteSheet.onload = checkLoad;
-        faceImg.onload = checkLoad;
-
-        // Kalau foto temen lu gagal di-load, fallback biar game gak blank
-        faceImg.onerror = () => {
-            console.warn("Gagal load face.png. Pastikan nama file dan foldernya bener di GitHub lu!");
-            checkLoad(); // Tetep jalanin game
+        spriteSheet.onload = () => {
+            startLoadingAnimation();
         };
 
         // --- LOADING LOGIC ---
@@ -208,25 +200,21 @@
         };
 
         const bird = {
-            x: 50, y: 150, 
-            w: S_BIRD.w * SCALE, // Ukuran dipertahankan dari hitbox asli
-            h: S_BIRD.h * SCALE,
-            gravity: 0.4, velocity: 0, jump: -6, rotation: 0,
+            x: 50, y: 150, w: S_BIRD[0].w * SCALE, h: S_BIRD[0].h * SCALE,
+            gravity: 0.4, velocity: 0, jump: -6, rotation: 0, frame: 0,
             draw: function() {
+                let currentSprite = S_BIRD[0];
+                if(state === STATE_PLAYING || state === STATE_GETREADY) {
+                    this.frame += 0.15;
+                    currentSprite = S_BIRD[Math.floor(this.frame) % 3];
+                }
                 ctx.save();
                 ctx.translate(this.x + this.w/2, this.y + this.h/2);
                 if(state === STATE_PLAYING || state === STATE_GAMEOVER){
                     this.rotation = Math.min(Math.PI / 2, Math.max(-Math.PI / 6, (this.velocity * 0.1)));
                     ctx.rotate(this.rotation);
                 }
-                
-                // --- BAGIAN INI MENGGAMBAR MUKA TEMEN LU ---
-                // Karena pakai foto custom, animasinya (ngepak sayap) kita matiin
-                // Kita pake imageSmoothingEnabled = true sesaat biar fotonya agak mulus
-                ctx.imageSmoothingEnabled = true;
-                ctx.drawImage(faceImg, -this.w/2, -this.h/2, this.w, this.h);
-                ctx.imageSmoothingEnabled = false; // balikin lagi ke false buat pixel art yang lain
-                
+                drawSprite(currentSprite, -this.w/2, -this.h/2);
                 ctx.restore();
             },
             update: function() {
@@ -299,19 +287,23 @@
 
         function drawUI() {
             if (state === STATE_GETREADY) {
-                let logoW = S_LOGO_FLAPPY.w * SCALE;
-                let logoH = S_LOGO_FLAPPY.h * SCALE;
-                drawSprite(S_LOGO_FLAPPY, canvas.width/2 - logoW/2, canvas.height/2 - 150);
-
+                let tutCenterY = canvas.height / 2 + 10;
+                
+                // Tulisan "Get Ready!" di atas logo tutorial
                 let totalW = (S_TEXT_GET.w + S_TEXT_READY.w + 5) * SCALE;
-                let textY = canvas.height/2 - 80;
+                let textY = tutCenterY - 120;
                 drawSprite(S_TEXT_GET, canvas.width/2 - totalW/2, textY);
                 drawSprite(S_TEXT_READY, canvas.width/2 - totalW/2 + (S_TEXT_GET.w * SCALE) + 10, textY);
                 
-                playBtnRect.w = S_PLAY_BTN.w * SCALE; playBtnRect.h = S_PLAY_BTN.h * SCALE;
-                playBtnRect.x = canvas.width/2 - playBtnRect.w/2; playBtnRect.y = canvas.height/2;
-                drawSprite(S_PLAY_BTN, playBtnRect.x, playBtnRect.y);
+                // --- KUMPULAN LOGO TUTORIAL (MESSAGE) ---
+                drawSprite(S_TUTORIAL_BIRD, canvas.width/2 - (S_TUTORIAL_BIRD.w * SCALE)/2, tutCenterY - 50);
+                drawSprite(S_TUTORIAL_ARROW, canvas.width/2 - (S_TUTORIAL_ARROW.w * SCALE)/2, tutCenterY - 10);
+                drawSprite(S_TUTORIAL_FINGER, canvas.width/2 - (S_TUTORIAL_FINGER.w * SCALE)/2, tutCenterY + 15);
+                drawSprite(S_TUTORIAL_TAP_L, canvas.width/2 - (S_TUTORIAL_FINGER.w * SCALE)/2 - (S_TUTORIAL_TAP_L.w * SCALE) - 10, tutCenterY + 20);
+                drawSprite(S_TUTORIAL_TAP_R, canvas.width/2 + (S_TUTORIAL_FINGER.w * SCALE)/2 + 10, tutCenterY + 20);
 
+                // Nggak ada tombol play. Pemain tinggal tap buat main.
+                
             } else if (state === STATE_PLAYING) {
                 drawScoreImages(score, canvas.width/2, 50, 1.2, "center"); 
 
@@ -327,6 +319,7 @@
                 let boardY = canvas.height/2 - 50;
                 drawSprite(S_SCOREBOARD, boardX, boardY);
 
+                // --- POSISI SKOR YANG UDAH PAS ---
                 let scoreXAlign = boardX + boardW - 28; 
                 drawScoreImages(score, scoreXAlign, boardY + 50, 0.45, "right");
                 drawScoreImages(bestScore, scoreXAlign, boardY + 92, 0.45, "right");
@@ -340,11 +333,15 @@
                 if (medalSprite) {
                     let medalW = medalSprite.w * SCALE;
                     let medalH = medalSprite.h * SCALE;
-                    let medalX = boardX + (boardW * 0.225) - (medalW / 2); 
-                    let medalY = boardY + (boardH * 0.535) - (medalH / 2); 
+                    // --- POSISI MEDALI YANG UDAH PAS ---
+                    let medalX = boardX + (boardW * 0.20) - (medalW / 2); 
+                    let medalY = boardY + (boardH * 0.52) - (medalH / 2); 
                     drawSprite(medalSprite, medalX, medalY);
                 }
 
+                // Tombol Play dimunculin lagi pas Game Over
+                playBtnRect.w = S_PLAY_BTN.w * SCALE; 
+                playBtnRect.h = S_PLAY_BTN.h * SCALE;
                 playBtnRect.x = canvas.width/2 - playBtnRect.w/2;
                 playBtnRect.y = boardY + boardH + 20;
                 drawSprite(S_PLAY_BTN, playBtnRect.x, playBtnRect.y);
@@ -380,13 +377,12 @@
             }
 
             if(state === STATE_GETREADY) {
-                if (clickX >= playBtnRect.x && clickX <= playBtnRect.x + playBtnRect.w &&
-                    clickY >= playBtnRect.y && clickY <= playBtnRect.y + playBtnRect.h) {
-                    resetGame();
-                }
+                // Di menu Get Ready, klik/tap dimana aja bakal langsung mulai!
+                resetGame();
             } else if (state === STATE_PLAYING) {
                 bird.flap();
             } else if (state === STATE_GAMEOVER) {
+                // Di menu Game Over, wajib nge-tap area tombol play
                 if (clickX >= playBtnRect.x && clickX <= playBtnRect.x + playBtnRect.w &&
                     clickY >= playBtnRect.y && clickY <= playBtnRect.y + playBtnRect.h) {
                     setTimeout(() => { state = STATE_GETREADY; }, 100);
@@ -426,3 +422,4 @@
     </script>
 </body>
 </html>
+
